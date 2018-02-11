@@ -129,6 +129,9 @@
   <data name="TextBlockOtherSettings.Text" xml:space="preserve">
     <value>常规设置</value>
   </data>
+  <data name="TextBlockUpdated.Text" xml:space="preserve">
+    <value>（应用已更新！）</value>
+  </data>
   <data name="TextBlockWallPaper.Text" xml:space="preserve">
     <value>壁纸</value>
   </data>
