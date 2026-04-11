@@ -138,6 +138,12 @@
   <data name="CheckBoxRatioVertical.Content" xml:space="preserve">
     <value>縱向</value>
   </data>
+    
+  <!-- 新增的根据屏幕方向选项 -->
+  <data name="CheckBoxBasedOnOrientation.Content" xml:space="preserve">
+    <value>根据屏幕方向</value>
+  </data>
+  
   <data name="MessageDialogRatingTag.Content" xml:space="preserve">
     <value>評級標籤會與本地篩選器衝突，因此無法在本應用使用。</value>
   </data>

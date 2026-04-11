@@ -1,4 +1,4 @@
-﻿using   PRPR.Common;
+using   PRPR.Common;
 using PRPR.ExReader.Views;
 using PRPR.BooruViewer.Views;
 using System;
@@ -49,10 +49,6 @@ namespace PRPR
         /// </summary>
         public App()
         {
-            Microsoft.ApplicationInsights.WindowsAppInitializer.InitializeAsync(
-                Microsoft.ApplicationInsights.WindowsCollectors.Metadata |
-                Microsoft.ApplicationInsights.WindowsCollectors.Session);
-
             // Set the app theme before the UI is created
             // Cannot call global AppSettings.Current stored in app resource which is not initialized
             // Have to init another object for it
@@ -87,7 +83,7 @@ namespace PRPR
 
 
 
-        private void App_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        private void App_UnhandledException(object sender, Windows.UI.Xaml.UnhandledExceptionEventArgs e)
         {
             e.Handled = false;
 
