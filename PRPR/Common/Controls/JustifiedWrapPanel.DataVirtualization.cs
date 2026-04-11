@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -10,12 +10,15 @@ namespace PRPR.Common.Controls
 {
     public partial class JustifiedWrapPanel
     {
+        const double LoadMoreTriggerViewportMultiplier = 3.0;
+        const uint MinimumPrefetchItemCount = 20;
+
         bool loading = false;
 
 
 		public async Task CheckNeedMoreItemAsync()
         {
-            if (ParentScrollViewer != null && ParentScrollViewer.VerticalOffset > ParentScrollViewer.ScrollableHeight - 1.5 * ParentScrollViewer.ViewportHeight &&
+            if (ParentScrollViewer != null && ParentScrollViewer.VerticalOffset > ParentScrollViewer.ScrollableHeight - LoadMoreTriggerViewportMultiplier * ParentScrollViewer.ViewportHeight &&
                 !loading && ItemsSource is ISupportIncrementalLoading && ((ISupportIncrementalLoading)ItemsSource).HasMoreItems)
             {
                 await LoadMoreItemsAsync();
@@ -24,9 +27,9 @@ namespace PRPR.Common.Controls
 
         async Task LoadMoreItemsAsync()
         {
-            // Usually load as many as current viewport has
-			// So it just prepares for about one half active window
-            await LoadMoreItemsAsync(Math.Max((uint)Containers.Count / 2, 10));
+            // Preload roughly one active window so row height recalculation
+            // happens before the user actually reaches the bottom.
+            await LoadMoreItemsAsync(Math.Max((uint)Containers.Count, MinimumPrefetchItemCount));
 		}
 
         async Task LoadMoreItemsAsync(uint count)
@@ -45,7 +48,13 @@ namespace PRPR.Common.Controls
 					{
                         try
                         {
-                            loaded += (await items.LoadMoreItemsAsync(count)).Count;
+                            var loadResult = await items.LoadMoreItemsAsync(count);
+                            if (loadResult.Count == 0)
+                            {
+                                break;
+                            }
+
+                            loaded += loadResult.Count;
 
                             // When new items are add, must recheck the realization
                             if (UpdateActiveRange(ParentScrollViewer.VerticalOffset, ParentScrollViewer.ViewportHeight, this.DesiredSize.Width - this.Margin.Left - this.Margin.Right, true))

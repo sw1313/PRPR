@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -226,6 +226,8 @@ namespace PRPR.Common.Controls
         void RecycleAll()
         {
             this.Children.Clear();
+            FirstActive = -1;
+            LastActive = -1;
             while (Containers.Count != 0)
             {
                 var container = Containers.First();

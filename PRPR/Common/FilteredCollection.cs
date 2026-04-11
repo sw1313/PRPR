@@ -1,7 +1,9 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
@@ -54,36 +56,54 @@ namespace PRPR.Common
 
         private void Refilter()
         {
-            this.Clear();
+            var newSourceItems = Source == null
+                ? new List<T>()
+                : Source.Where(filter.Function).ToList();
+
+            ReplaceAll(newSourceItems);
+        }
+
+        private void ReplaceAll(IList<T> items)
+        {
+            Items.Clear();
+            foreach (var item in items)
+            {
+                Items.Add(item);
+            }
+
+            OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
+            OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+        }
+
+        public void Refresh()
+        {
+            Refilter();
+        }
+
+        private void AppendFilteredItems(IEnumerable<T> items)
+        {
+            foreach (var item in items)
+            {
+                this.Add(item);
+            }
+        }
+
+        private int GetFilteredSourceCount()
+        {
             if (Source != null)
             {
-
-                if (this.Count == 0)
-                {
-                    // The ToList is not necessary but is running faster in Debug mode
-                    var newSourceItems = Source.Where(filter.Function).ToList();
-                    foreach (var item in newSourceItems)
-                    {
-                        this.Add(item);
-                    }
-                }
-                else
-                {
-                    // There are other items loaded during this download
-                    // Prevent duplicate items
-                }
+                return Source.Where(filter.Function).Count();
             }
-            else
-            {
 
-            }
+            return 0;
         }
 
         public bool HasMoreItems
         {
             get
             {
-                return (this.Source != null && this.Source.HasMoreItems) || (this.Source != null && this.Source.Where(filter.Function).Count()> this.Count());
+                return (this.Source != null && this.Source.HasMoreItems) || (this.Source != null && GetFilteredSourceCount() > this.Count());
             }
         }
 
@@ -102,21 +122,32 @@ namespace PRPR.Common
             try
             {
                 var oldFilteredCount = this.Count;
-                var oldCount = this.Count();
+                var sourceCountCursor = Source?.Count() ?? 0;
+                var pendingFilteredItems = Source == null
+                    ? new List<T>()
+                    : Source.Where(filter.Function).Skip(oldFilteredCount).ToList();
 
-                if (oldCount >= Source.Where(filter.Function).Count())
+                int attempts = 0;
+                while (pendingFilteredItems.Count == 0 &&
+                    Source != null &&
+                    Source.HasMoreItems &&
+                    attempts < 4)
                 {
-                    var x = await Source.LoadMoreItemsAsync(count);
-                }
-                var newCount = this.Source.Count();
-                var newSourceItems = Source.Where(filter.Function).Skip(oldCount);
-
-                if (oldCount == this.Count)
-                {
-                    foreach (var item in newSourceItems)
+                    var loadResult = await Source.LoadMoreItemsAsync(count);
+                    var newSourceCount = Source.Count();
+                    if (newSourceCount <= sourceCountCursor || loadResult.Count == 0)
                     {
-                        this.Add(item);
+                        break;
                     }
+
+                    pendingFilteredItems.AddRange(Source.Skip(sourceCountCursor).Where(filter.Function));
+                    sourceCountCursor = newSourceCount;
+                    attempts++;
+                }
+
+                if (oldFilteredCount == this.Count)
+                {
+                    AppendFilteredItems(pendingFilteredItems);
 
                     return new LoadMoreItemsResult { Count = (uint)(this.Count - oldFilteredCount) };
                 }
