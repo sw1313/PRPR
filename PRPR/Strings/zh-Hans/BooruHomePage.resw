@@ -58,7 +58,7 @@
     value   : The object must be serialized into a byte array 
             : using a System.ComponentModel.TypeConverter
             : and then encoded with base64 encoding.
-    -->
+  -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
     <xsd:element name="root" msdata:IsDataSet="true">
@@ -117,6 +117,10 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  
+  <!-- 应用中的资源字符串 -->
+  
+  <!-- 按钮和控件内容 -->
   <data name="AppBarButtonFilter.Label" xml:space="preserve">
     <value>筛选</value>
   </data>
@@ -138,6 +142,13 @@
   <data name="CheckBoxRatioVertical.Content" xml:space="preserve">
     <value>纵向</value>
   </data>
+  
+  <!-- 新增的根据屏幕方向选项 -->
+  <data name="CheckBoxBasedOnOrientation.Content" xml:space="preserve">
+    <value>根据屏幕方向</value>
+  </data>
+  
+  <!-- 消息对话框内容 -->
   <data name="MessageDialogRatingTag.Content" xml:space="preserve">
     <value>评级标籤会与本地过滤器冲突，因此无法在本应用使用。</value>
   </data>
@@ -150,6 +161,8 @@
   <data name="MessageDialogTooManyTags.Title" xml:space="preserve">
     <value>关键字过多</value>
   </data>
+  
+  <!-- 头部标签 -->
   <data name="StackPanelHeaderBrowse.Tag" xml:space="preserve">
     <value>浏览</value>
   </data>
@@ -162,8 +175,10 @@
   <data name="StackPanelHeaderMore.Tag" xml:space="preserve">
     <value>更多</value>
   </data>
+  
+  <!-- 文本块内容 -->
   <data name="TextBlockAllowHeld.Text" xml:space="preserve">
-    <value>一些剛上傳但未被標籤的圖片都會可能會暫時被攔截。您可以選擇提前看到這些新圖，但黑名單可能對它們沒有效果。</value>
+    <value>一些刚上传但未被标籤的图片都可能会暂时被拦截。您可以选择提前看到这些新图，但黑名单可能对它们没有效果。</value>
   </data>
   <data name="TextBlockAllowHidden.Text" xml:space="preserve">
     <value>一般以文字为主的图片都会被预设隐藏。</value>
@@ -219,13 +234,22 @@
   <data name="TextBlockRatioSquare.Text" xml:space="preserve">
     <value>注意：正方图片归入横向类</value>
   </data>
+  
+  <!-- 文本框标题 -->
   <data name="TextBoxBlacklist.Header" xml:space="preserve">
     <value>黑名单标籤</value>
   </data>
+  
+  <!-- 切换开关标题 -->
   <data name="ToggleSwitchAllowHeld.Header" xml:space="preserve">
-    <value>顯示被攔截的圖片</value>
+    <value>显示被拦截的图片</value>
   </data>
   <data name="ToggleSwitchAllowHidden.Header" xml:space="preserve">
     <value>显示被隐藏的图片</value>
+  </data>
+  
+  <!-- 新增的设置锁屏壁纸按钮 -->
+  <data name="SetWallpaperButton.Content" xml:space="preserve">
+    <value>设置为锁屏壁纸</value>
   </data>
 </root>

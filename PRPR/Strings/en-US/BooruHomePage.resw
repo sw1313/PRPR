@@ -138,6 +138,13 @@
   <data name="CheckBoxRatioVertical.Content" xml:space="preserve">
     <value>Vertical</value>
   </data>
+  
+    
+  <!-- 新增的根据屏幕方向选项 -->
+  <data name="CheckBoxBasedOnOrientation.Content" xml:space="preserve">
+    <value>Depending on the screen orientation</value>
+  </data>
+  
   <data name="MessageDialogRatingTag.Content" xml:space="preserve">
     <value>Rating metatag is not available in this app because it will conflict with the local filter.</value>
   </data>
