@@ -1,4 +1,4 @@
-﻿using PRPR.Common.Models;
+using PRPR.Common.Models;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,15 +26,60 @@ namespace PRPR.Common.Controls
 
         private async void ItemsSource_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            InvalidateLayoutCache();
             if (e.Action == NotifyCollectionChangedAction.Reset)
             {
                 RecycleAll();
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Add)
-            {
-                if (UpdateActiveRange(ParentScrollViewer.VerticalOffset, ParentScrollViewer.ViewportHeight, DesiredSize.Width - Margin.Left - Margin.Right, true))
+
+                if (ParentScrollViewer != null && ItemsSource is IList items && items.Count > 0)
                 {
+                    var parentWidth = DesiredSize.Width - Margin.Left - Margin.Right;
+                    if (parentWidth <= 0)
+                    {
+                        parentWidth = ParentScrollViewer.ViewportWidth - Margin.Left - Margin.Right;
+                    }
+
+                    UpdateActiveRange(
+                        ParentScrollViewer.VerticalOffset,
+                        ParentScrollViewer.ViewportHeight,
+                        parentWidth,
+                        true);
                     RevirtualizeAll();
+                }
+                else
+                {
+                    InvalidateMeasure();
+                }
+            }
+            else
+            {
+                var parentWidth = DesiredSize.Width - Margin.Left - Margin.Right;
+                if (parentWidth <= 0 && ParentScrollViewer != null)
+                {
+                    parentWidth = ParentScrollViewer.ViewportWidth - Margin.Left - Margin.Right;
+                }
+
+                if (ParentScrollViewer != null)
+                {
+                    var rangeChanged = UpdateActiveRange(
+                        ParentScrollViewer.VerticalOffset,
+                        ParentScrollViewer.ViewportHeight,
+                        parentWidth,
+                        true);
+                    var shouldRefresh = Containers.Count == 0 || rangeChanged;
+
+                    if (shouldRefresh)
+                    {
+                        RevirtualizeAll();
+                    }
+                    else
+                    {
+                        InvalidateMeasure();
+                    }
+                }
+                else
+                {
+                    InvalidateMeasure();
                 }
             }
         }
@@ -46,6 +91,7 @@ namespace PRPR.Common.Controls
         public static async void OnItemSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var p = (d as JustifiedWrapPanel);
+            p.InvalidateLayoutCache();
 
 
             // Reassign the handler to new item set
@@ -111,6 +157,7 @@ namespace PRPR.Common.Controls
         public static async void OnRowHeightChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var p = (d as JustifiedWrapPanel);
+            p.InvalidateLayoutCache();
             p.CheckParentUpdate();
             if (p.ParentScrollViewer != null)
             {
@@ -141,8 +188,156 @@ namespace PRPR.Common.Controls
             }
         }
 
+        sealed class RowLayoutInfo
+        {
+            public int StartIndex { get; set; }
+
+            public int EndIndex { get; set; }
+
+            public double Top { get; set; }
+
+            public double Height { get; set; }
+
+            public bool IsLastRow { get; set; }
+        }
+
 
         public ScrollViewer ParentScrollViewer = null;
+
+        List<RowLayoutInfo> _layoutRows = null;
+        double _layoutWidth = -1;
+        int _layoutItemCount = -1;
+        double _layoutTargetRowHeight = -1;
+
+        void InvalidateLayoutCache()
+        {
+            _layoutRows = null;
+            _layoutWidth = -1;
+            _layoutItemCount = -1;
+            _layoutTargetRowHeight = -1;
+        }
+
+        double GetMinRowHeight()
+        {
+            return Math.Max(1, RowHeight * 0.75);
+        }
+
+        double GetMaxRowHeight()
+        {
+            return Math.Max(GetMinRowHeight(), RowHeight * 1.35);
+        }
+
+        double GetPreferredRatio(IJustifiedWrapPanelItem item)
+        {
+            if (item == null || item.PreferredHeight == 0)
+            {
+                return 1;
+            }
+
+            return item.PreferredWidth / item.PreferredHeight;
+        }
+
+        List<RowLayoutInfo> GetLayoutRows(double availableWidth)
+        {
+            var items = ItemsSource as IList;
+            if (items == null || items.Count == 0 || availableWidth <= 0)
+            {
+                return new List<RowLayoutInfo>();
+            }
+
+            if (_layoutRows != null &&
+                Math.Abs(_layoutWidth - availableWidth) < 0.1 &&
+                _layoutItemCount == items.Count &&
+                Math.Abs(_layoutTargetRowHeight - RowHeight) < 0.1)
+            {
+                return _layoutRows;
+            }
+
+            var rows = new List<RowLayoutInfo>();
+            var targetRowHeight = RowHeight;
+            var minRowHeight = GetMinRowHeight();
+            var maxRowHeight = GetMaxRowHeight();
+            var currentTop = 0.0;
+            var rowStartIndex = 0;
+            var currentRowRatio = 0.0;
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                var item = items[i] as IJustifiedWrapPanelItem;
+                var itemRatio = GetPreferredRatio(item);
+                currentRowRatio += itemRatio;
+
+                var filledHeight = availableWidth / currentRowRatio;
+                var rowItemCount = i - rowStartIndex + 1;
+
+                if (filledHeight < minRowHeight && rowItemCount > 1)
+                {
+                    var previousRowRatio = currentRowRatio - itemRatio;
+                    var previousFilledHeight = availableWidth / previousRowRatio;
+
+                    if (Math.Abs(filledHeight - targetRowHeight) < Math.Abs(previousFilledHeight - targetRowHeight))
+                    {
+                        rows.Add(new RowLayoutInfo()
+                        {
+                            StartIndex = rowStartIndex,
+                            EndIndex = i,
+                            Top = currentTop,
+                            Height = filledHeight,
+                            IsLastRow = false
+                        });
+                        currentTop += filledHeight;
+                        rowStartIndex = i + 1;
+                        currentRowRatio = 0;
+                    }
+                    else
+                    {
+                        rows.Add(new RowLayoutInfo()
+                        {
+                            StartIndex = rowStartIndex,
+                            EndIndex = i - 1,
+                            Top = currentTop,
+                            Height = previousFilledHeight,
+                            IsLastRow = false
+                        });
+                        currentTop += previousFilledHeight;
+                        rowStartIndex = i;
+                        currentRowRatio = itemRatio;
+                    }
+                }
+                else if (filledHeight <= maxRowHeight)
+                {
+                    rows.Add(new RowLayoutInfo()
+                    {
+                        StartIndex = rowStartIndex,
+                        EndIndex = i,
+                        Top = currentTop,
+                        Height = filledHeight,
+                        IsLastRow = false
+                    });
+                    currentTop += filledHeight;
+                    rowStartIndex = i + 1;
+                    currentRowRatio = 0;
+                }
+            }
+
+            if (rowStartIndex < items.Count)
+            {
+                rows.Add(new RowLayoutInfo()
+                {
+                    StartIndex = rowStartIndex,
+                    EndIndex = items.Count - 1,
+                    Top = currentTop,
+                    Height = targetRowHeight,
+                    IsLastRow = true
+                });
+            }
+
+            _layoutRows = rows;
+            _layoutWidth = availableWidth;
+            _layoutItemCount = items.Count;
+            _layoutTargetRowHeight = RowHeight;
+            return rows;
+        }
 
         private void CheckParentUpdate()
         {
@@ -166,6 +361,7 @@ namespace PRPR.Common.Controls
         
         private async void ParentScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
         {
+            InvalidateLayoutCache();
             var top = (sender as ScrollViewer).HorizontalOffset;
 
             if (UpdateActiveRange((sender as ScrollViewer).VerticalOffset, (sender as ScrollViewer).ViewportHeight, e.NewSize.Width - this.Margin.Left - this.Margin.Right, true))
@@ -204,71 +400,38 @@ namespace PRPR.Common.Controls
         /// <param name="layoutChanged"></param>
         /// <param name="activeWindowScale"></param>
         /// <returns>Whether the range is updated</returns>
-        bool UpdateActiveRange(double visibleTop, double visibleHeight, double parentWidth, bool layoutChanged, double activeWindowScale = 3)
+        bool UpdateActiveRange(double visibleTop, double visibleHeight, double parentWidth, bool layoutChanged, double activeWindowScale = 4)
         {
             var visibleCenter = visibleTop + visibleHeight / 2.0;
             var halfVisibleWindowsSize = (activeWindowScale / 2.0) * visibleHeight;
-            var activeTop = visibleCenter - halfVisibleWindowsSize - RowHeight;
-            var activeBottom = visibleCenter + halfVisibleWindowsSize;
+            var activeTop = visibleCenter - halfVisibleWindowsSize - GetMaxRowHeight();
+            var activeBottom = visibleCenter + halfVisibleWindowsSize + GetMaxRowHeight();
 
             var oldFirst = FirstActive;
             var oldLast = LastActive;
 
-            FirstActive = -1;
-            if (ItemsSource is IList)
+            var rows = GetLayoutRows(parentWidth);
+            if (rows.Count > 0)
             {
-                if ((ItemsSource as IList).Count != 0)
+                FirstActive = rows.First().StartIndex;
+                LastActive = rows.First().EndIndex;
+
+                foreach (var row in rows)
                 {
-                    FirstActive = 0;
-                }
-                var position = new UvMeasure();
-                foreach (var child in ItemsSource as IList)
-                {
-                    if (position.Y < activeTop) // Cannot see this row within active window
+                    if (row.Top + row.Height < activeTop)
                     {
-                        FirstActive = (ItemsSource as IList).IndexOf(child);
-                    }
-                    else // The FirstActive is found and confirmed
-                    {
-                        if (!layoutChanged && oldFirst == FirstActive)
-                        {
-                            // If the layout has not changed and we found that the top is unchanged,
-                            // We immedately conclude that bottom is not changed too
-                            return false;
-                        }
+                        FirstActive = row.EndIndex;
                     }
 
-                    var childImage = (child as IJustifiedWrapPanelItem);
-                    var childWidth = ScaledWidth(childImage, RowHeight);
-
-
-                   
-
-                    bool newRow = position.X + childWidth > parentWidth && (position.Y != 0 || position.X != 0);
-                    if (newRow)
+                    if (row.Top <= activeBottom)
                     {
-                        // next row!
-                        position.X = childWidth;
-                        position.Y += RowHeight;
-                        if (position.Y > activeBottom) // Cannot see this row within active window
-                        {
-                            // Last row is the last active
-                            LastActive = (ItemsSource as IList).IndexOf(child) - 1;
-                            return oldFirst != FirstActive || oldLast != LastActive;
-                        }
-                    }
-                    else
-                    {
-                        // adjust the location for the next items
-                        position.X += childWidth;
+                        LastActive = row.EndIndex;
                     }
                 }
-
-                LastActive = (ItemsSource as IList).Count - 1;
             }
             else
             {
-                FirstActive = LastActive = - 1;
+                FirstActive = LastActive = -1;
             }
 
             return oldFirst != FirstActive || oldLast != LastActive;
@@ -280,134 +443,71 @@ namespace PRPR.Common.Controls
             // Update the parent ScrollViewer
             CheckParentUpdate();
 
-            
-            double currentY = 0;
-            
-            List<UIElement> currentRow = new List<UIElement>();
-
-            if (ItemsSource is IList items)
+            var layoutWidth = availableSize.Width;
+            if (double.IsInfinity(layoutWidth) && ParentScrollViewer != null)
             {
-                var maxRowWidth = availableSize.Width;
-
-                var maxRowRatio = maxRowWidth / RowHeight;
-                var currectRowRatio = 0.0;
-                foreach (IJustifiedWrapPanelItem item in items)
-                {
-                    bool newRow = (item.PreferredRatio + currectRowRatio > maxRowRatio) && (currentY != 0 || currectRowRatio != 0);
-                    if (newRow)
-                    {
-                        // Process previous row
-                        MeasureRow(currentRow, new Rect(0, currentY, maxRowWidth, RowHeight), false);
-                        currentRow.Clear();
-
-                        // Reset current row
-                        currectRowRatio = 0;
-                        currentY += RowHeight;
-                    }
-
-                    if (ContainerFromItem(item) != null) // Realized
-                    {
-                        // Arrange it
-                        currentRow.Add(ContainerFromItem(item) as ContentControl);
-                    }
-
-                    // adjust the location for the next items
-                    currectRowRatio += item.PreferredRatio;
-                }
-
-                // update value with the last line
-                MeasureRow(currentRow, new Rect(0, currentY, availableSize.Width, RowHeight), true);
-                currentY += RowHeight;
+                layoutWidth = ParentScrollViewer.ViewportWidth;
+            }
+            if (double.IsInfinity(layoutWidth))
+            {
+                layoutWidth = 0;
             }
 
+            var rows = GetLayoutRows(layoutWidth);
+            foreach (var row in rows)
+            {
+                MeasureRow(row);
+            }
 
-            return new Size(availableSize.Width, currentY);
+            var totalHeight = rows.Count == 0 ? 0 : rows.Last().Top + rows.Last().Height;
+            return new Size(availableSize.Width, totalHeight);
         }
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            double rowWidth = 0;
-            double currentY = 0;
-
-            List<UIElement> currentRow = new List<UIElement>();
-
-            if (ItemsSource is IList items && items.Count > 0)
+            foreach (var row in GetLayoutRows(finalSize.Width).Where(o => o.EndIndex >= FirstActive && o.StartIndex <= LastActive))
             {
-                IJustifiedWrapPanelItem item;
-                for (int i = 0; i <= Math.Min(items.Count - 1, LastActive); i++) // Dont care about items after last active item
-                {
-                    item = items[i] as IJustifiedWrapPanelItem;
-                    var itemWidth = ScaledWidth(item, RowHeight);
-
-
-                    bool newRow = itemWidth + rowWidth > finalSize.Width && (currentY != 0 || rowWidth != 0);
-                    if (newRow)
-                    {
-                        // Process previous row
-                        ArrangeRow(currentRow, new Rect(0, currentY, finalSize.Width, RowHeight), false);
-                        currentRow.Clear();
-
-                        // Reset current row
-                        rowWidth = 0;
-                        currentY += RowHeight;
-                    }
-
-                    if (ContainerFromItem(item) != null) // Realized
-                    {
-                        // Arrange it
-                        currentRow.Add(ContainerFromItem(item) as ContentControl);
-                    }
-
-                    // adjust the location for the next items
-                    rowWidth += itemWidth;
-                }
-                ArrangeRow(currentRow, new Rect(0, currentY, finalSize.Width, RowHeight), items.Count - 1 == LastActive);
+                ArrangeRow(row);
             }
             CheckNeedMoreItemAsync();
             return finalSize;
         }
 
-        private void MeasureRow(List<UIElement> items, Rect rowSpace, bool isLastRow)
+        private void MeasureRow(RowLayoutInfo row)
         {
-            // Calculate the scale factor
-            var scaleX = isLastRow ? 1 : rowSpace.Width / (items.Sum(o => ((o as ContentControl).Content as IJustifiedWrapPanelItem).PreferredRatio) * rowSpace.Height);
-
-            double currentX = 0;
-            var scaledHeight = rowSpace.Height * scaleX;
-            foreach (var item in items)
+            if (!(ItemsSource is IList items))
             {
-                // Place the item
-                var itemWidth = ((item as ContentControl).Content as IJustifiedWrapPanelItem).PreferredRatio * scaledHeight;
-                var itemSize = new Size(itemWidth, rowSpace.Height);
-                item.Measure(itemSize);
-                currentX += itemWidth;
+                return;
+            }
+
+            for (int i = row.StartIndex; i <= row.EndIndex; i++)
+            {
+                if (ContainerFromIndex(i) is ContentControl container && items[i] is IJustifiedWrapPanelItem item)
+                {
+                    container.Measure(new Size(GetPreferredRatio(item) * row.Height, row.Height));
+                }
             }
         }
 
 
-        private void ArrangeRow(List<UIElement> items, Rect rowSpace, bool isLastRow)
+        private void ArrangeRow(RowLayoutInfo row)
         {
-            // Calculate the scale factor
-            var scaleX = isLastRow ? 1 : rowSpace.Width / items.Sum( o =>
-            ScaledWidth((o as ContentControl).Content as IJustifiedWrapPanelItem, rowSpace.Height));
-
             double currentX = 0;
-            foreach (var item in items)
+            if (!(ItemsSource is IList items))
             {
-                // Place the item
-                var itemWidth = ScaledWidth((item as ContentControl).Content as IJustifiedWrapPanelItem, rowSpace.Height) * scaleX;
-                var itemRect = new Rect(rowSpace.X + currentX, rowSpace.Y, itemWidth, rowSpace.Height);
-                item.Arrange(itemRect);
-                currentX += itemWidth;
+                return;
+            }
+
+            for (int i = row.StartIndex; i <= row.EndIndex; i++)
+            {
+                if (ContainerFromIndex(i) is ContentControl container && items[i] is IJustifiedWrapPanelItem item)
+                {
+                    var itemWidth = GetPreferredRatio(item) * row.Height;
+                    container.Arrange(new Rect(currentX, row.Top, itemWidth, row.Height));
+                    currentX += itemWidth;
+                }
             }
         }
-
-
-        double ScaledWidth(IJustifiedWrapPanelItem item, double height)
-        {
-            return item.PreferredWidth / item.PreferredHeight * height;
-        }
-
 
         public void ScrollIntoView(object item, ScrollIntoViewAlignment alignment)
         {
@@ -423,12 +523,14 @@ namespace PRPR.Common.Controls
                     {
                         default:
                         case ScrollIntoViewAlignment.Default:
-                            double top = GetPositionY(index);
+                            var row = GetRowForIndex(index);
+                            double top = row == null ? 0 : row.Top;
+                            double bottom = row == null ? RowHeight : row.Top + row.Height;
 
-                            if (ParentScrollViewer.VerticalOffset + ParentScrollViewer.ViewportHeight + ParentScrollViewer.Margin.Top < top + RowHeight)
+                            if (ParentScrollViewer.VerticalOffset + ParentScrollViewer.ViewportHeight + ParentScrollViewer.Margin.Top < bottom)
                             {
                                 // The target is below the viewport, align the item to the button of viewport
-                                ParentScrollViewer.ChangeView(null, top + RowHeight - ParentScrollViewer.ViewportHeight - ParentScrollViewer.Margin.Top, null, true);
+                                ParentScrollViewer.ChangeView(null, bottom - ParentScrollViewer.ViewportHeight - ParentScrollViewer.Margin.Top, null, true);
                             }
                             else if (top < ParentScrollViewer.VerticalOffset)
                             {
@@ -446,34 +548,24 @@ namespace PRPR.Common.Controls
         
         private double GetPositionY(int index)
         {
-            double currentY = 0;
-            
-            if (ItemsSource is IList items)
+            var row = GetRowForIndex(index);
+            return row == null ? 0 : row.Top;
+        }
+
+        private RowLayoutInfo GetRowForIndex(int index)
+        {
+            if (!(ItemsSource is IList items) || index < 0 || index >= items.Count)
             {
-                var maxRowWidth = this.DesiredSize.Width - this.Margin.Left - this.Margin.Right;
-
-                var maxRowRatio = maxRowWidth / RowHeight;
-                var currectRowRatio = 0.0;
-                for (int i = 0; i <= index; i++)
-                {
-                    var item = items[i] as IJustifiedWrapPanelItem;
-                    bool newRow = (item.PreferredRatio + currectRowRatio > maxRowRatio) && (currentY != 0 || currectRowRatio != 0);
-                    if (newRow)
-                    {
-
-                        // Reset current row
-                        currectRowRatio = 0;
-                        currentY += RowHeight;
-                    }
-                    
-
-                    // adjust the location for the next items
-                    currectRowRatio += item.PreferredRatio;
-                }
-
-                return currentY;
+                return null;
             }
-            return 0;
+
+            var layoutWidth = this.DesiredSize.Width - this.Margin.Left - this.Margin.Right;
+            if (layoutWidth <= 0 && ParentScrollViewer != null)
+            {
+                layoutWidth = ParentScrollViewer.ViewportWidth - this.Margin.Left - this.Margin.Right;
+            }
+
+            return GetLayoutRows(layoutWidth).FirstOrDefault(o => o.StartIndex <= index && o.EndIndex >= index);
         }
         
         public DependencyObject ContainerFromIndex (int index)
