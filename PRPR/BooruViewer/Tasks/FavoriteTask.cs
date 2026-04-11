@@ -1,4 +1,5 @@
-﻿using Microsoft.QueryStringDotNET;
+using Microsoft.QueryStringDotNET;
+using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Services;
 using System;
@@ -27,10 +28,19 @@ namespace PRPR.BooruViewer.Tasks
 
         private async Task RunAsync(int id)
         {
-            // Favorite the post with the id
             var y = YandeSettings.Current;
+            if (y.IsLoggedIn)
+            {
+                await YandeClient.VoteAsync(id, y.UserName, y.PasswordHash, VoteType.Favorite);
+                return;
+            }
 
-            await YandeClient.VoteAsync(id, y.UserName, y.PasswordHash, VoteType.Favorite);
+            var posts = await Posts.DownloadPostsAsync(1, $"{YandeClient.HOST}/post.xml?tags=id%3A{id}");
+            var post = posts.FirstOrDefault();
+            if (post != null)
+            {
+                await LocalFavoriteService.AddOrUpdateAsync(post);
+            }
         }
     }
 }

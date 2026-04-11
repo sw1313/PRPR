@@ -1,4 +1,4 @@
-﻿using PRPR.Common;
+using PRPR.Common;
 using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Services;
 using PRPR.BooruViewer.ViewModels;
@@ -361,13 +361,20 @@ namespace PRPR.BooruViewer.Views
             }
             catch (Exception ex)
             {
-
+                await new MessageDialog(ex.Message, "Favorite Error").ShowAsync();
             }
         }
 
         private async void UnfavoriteButton_Click(object sender, RoutedEventArgs e)
         {
-            await ImagesViewModel.SelectedImageViewModel.Unfavorite();
+            try
+            {
+                await ImagesViewModel.SelectedImageViewModel.Unfavorite();
+            }
+            catch (Exception ex)
+            {
+                await new MessageDialog(ex.Message, "Favorite Error").ShowAsync();
+            }
         }
 
 

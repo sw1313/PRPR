@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -30,6 +30,7 @@ namespace PRPR.BooruViewer.Services
         public static async Task DownloadLatestTagDBAsync()
         {
             Windows.Web.Http.HttpClient httpClient2 = new Windows.Web.Http.HttpClient();
+            YandeClient.ApplyDefaultHeaders(httpClient2);
             var json = await httpClient2.GetStringAsync(new Uri($"{YandeClient.HOST}/tag/summary.json"));
             
             

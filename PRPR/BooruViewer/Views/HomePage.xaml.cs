@@ -1,4 +1,4 @@
-﻿using Microsoft.Graphics.Canvas.Effects;
+using Microsoft.Graphics.Canvas.Effects;
 using PRPR.Common;
 using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
@@ -51,6 +51,9 @@ namespace PRPR.BooruViewer.Views
             this.navigationHelper = new NavigationHelper(this);
             this.navigationHelper.LoadState += this.NavigationHelper_LoadState;
             this.navigationHelper.SaveState += this.NavigationHelper_SaveState;
+
+            // 确保 IsRatingFilterUnlocked 为 true
+            YandeSettings.Current.IsRatingFilterUnlocked = true;
         }
 
         #region NavigationHelper
@@ -61,7 +64,7 @@ namespace PRPR.BooruViewer.Views
             get { return this.navigationHelper; }
         }
 
-        protected override void OnNavigatedTo(NavigationEventArgs e)
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
         {
             this.navigationHelper.OnNavigatedTo(e);
         }
@@ -72,7 +75,7 @@ namespace PRPR.BooruViewer.Views
         }
 
         #endregion
-        
+
         public HomeViewModel HomeViewModel
         {
             get
@@ -81,15 +84,10 @@ namespace PRPR.BooruViewer.Views
             }
         }
 
-
-        
-
-
         private async void NavigationHelper_LoadState(object sender, LoadStateEventArgs e)
         {
             bool ResumingExistingPage = e.PageState != null && e.PageState.ContainsKey("Tags");
 
-            
             if (ResumingExistingPage)
             {
                 // Re-search the tags if needed
@@ -102,7 +100,6 @@ namespace PRPR.BooruViewer.Views
             }
             else // Newly entered a page
             {
-
                 if (e.NavigationParameter != null && !String.IsNullOrEmpty(e.NavigationParameter as string))
                 {
                     // Turn to the searching selection
@@ -116,13 +113,12 @@ namespace PRPR.BooruViewer.Views
                 await HomeViewModel.SearchAsync(SearchBox.Text);
             }
         }
-        
+
         private void NavigationHelper_SaveState(object sender, SaveStateEventArgs e)
         {
             e.PageState["Tags"] = SearchBox.Text;
             e.PageState["Tab"] = MainPivot.SelectedIndex;
         }
-        
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
@@ -130,28 +126,21 @@ namespace PRPR.BooruViewer.Views
             {
                 var frameState = SuspensionManager.SessionStateForFrame(this.Frame);
 
-
                 if (this.Frame.CanGoForward && frameState.ContainsKey("Page-" + (this.Frame.BackStackDepth + 1)))
                 {
-
-
                     // Jump to the pivot where user left
                     if (frameState.ContainsKey("Page-" + (this.Frame.BackStackDepth)))
                     {
                         var thisPageParameters = frameState["Page-" + (this.Frame.BackStackDepth)] as IDictionary<string, object>;
                         if (thisPageParameters.ContainsKey("Tab") && MainPivot.SelectedIndex != (int)(thisPageParameters["Tab"]))
                         {
-                            // Work around to disable to pivot turning animation by changing the index twice                            
+                            // Work around to disable the pivot turning animation by changing the index twice                            
                             MainPivot.SelectedIndex = (MainPivot.SelectedIndex + 2) % 4;
                             MainPivot.SelectedIndex = (MainPivot.SelectedIndex + 1) % 4;
                             MainPivot.SelectedIndex = (int)(thisPageParameters["Tab"]);
-
-                            //MainPivot.UpdateLayout();
                         }
                     }
 
-
-                    
                     // Jump to the page item if this is a back button action
                     var lastPageParameters = frameState["Page-" + (this.Frame.BackStackDepth + 1)] as IDictionary<string, object>;
                     if (lastPageParameters.ContainsKey("Index") && lastPageParameters.ContainsKey("PostId"))
@@ -159,16 +148,13 @@ namespace PRPR.BooruViewer.Views
                         var index = (int)lastPageParameters["Index"];
                         var postId = (int)lastPageParameters["PostId"];
 
-
                         if (this.HomeViewModel.SelectedViewIndex == 0)
                         {
-
                             // Pre-fall creator has different image loading order
                             // unable to share same connected animation code without breaking the UI
                             if (ApiInformation.IsApiContractPresent("Windows.Foundation.UniversalApiContract", 5))
                             {
-
-                                var post = FeatureView.FeatureViewModel.TopToday.First(o => o.Id == postId);
+                                var post = FeatureView.FeatureViewModel.TopToday.FirstOrDefault(o => o.Id == postId);
                                 if (post != null && FeatureView.FeatureViewModel.TopToday.IndexOf(post) != -1)
                                 {
                                     // Start the animation
@@ -181,7 +167,6 @@ namespace PRPR.BooruViewer.Views
                                         animation.TryStart(image.ImageInside);
                                     }
                                 }
-
                             }
                         }
                         else if (this.HomeViewModel.SelectedViewIndex == 1 || this.HomeViewModel.SelectedViewIndex == 2)
@@ -198,12 +183,13 @@ namespace PRPR.BooruViewer.Views
                                 panel = FavoritePanel;
                             }
 
-                            // Scroll into the index of last opened page
-                            panel.ScrollIntoView((panel.ItemsSource as IList)[index], ScrollIntoViewAlignment.Default);
-                            panel.UpdateLayout();
-
-
-
+                            var panelItems = panel.ItemsSource as IList;
+                            if (panelItems != null && index >= 0 && index < panelItems.Count)
+                            {
+                                // Scroll into the index of last opened page
+                                panel.ScrollIntoView(panelItems[index], ScrollIntoViewAlignment.Default);
+                                panel.UpdateLayout();
+                            }
 
                             // Pre-fall creator has different image loading order
                             // unable to share same connected animation code without breaking the UI
@@ -213,7 +199,8 @@ namespace PRPR.BooruViewer.Views
                                 ConnectedAnimation animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("PreviewImage");
                                 if (animation != null)
                                 {
-                                    if (panel.ContainerFromIndex(index) is ContentControl container)
+                                    if (panelItems != null && index >= 0 && index < panelItems.Count &&
+                                        panel.ContainerFromIndex(index) is ContentControl container)
                                     {
                                         var root = (FrameworkElement)container.ContentTemplateRoot;
                                         var image = (UIElement)root.FindName("PreviewImage");
@@ -227,19 +214,17 @@ namespace PRPR.BooruViewer.Views
             }
             catch (Exception ex)
             {
-
+                // 这里可以添加日志记录或其他处理逻辑
+                Debug.WriteLine($"Page_Loaded Exception: {ex.Message}");
             }
         }
-        
-        
-
 
         private void FilterButton_Click(object sender, RoutedEventArgs e)
         {
             Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterMainFlyout"] as Flyout);
             Flyout.ShowAttachedFlyout(FilterButton);
         }
-        
+
         private void MenuFlyoutSubItem_Tapped(object sender, TappedRoutedEventArgs e)
         {
             Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterRatingFlyout"] as Flyout);
@@ -248,7 +233,6 @@ namespace PRPR.BooruViewer.Views
 
         private void FilterReturnItem_Tapped(object sender, TappedRoutedEventArgs e)
         {
-
             Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterMainFlyout"] as Flyout);
             Flyout.ShowAttachedFlyout(FilterButton);
         }
@@ -265,14 +249,10 @@ namespace PRPR.BooruViewer.Views
             Flyout.ShowAttachedFlyout(FilterButton);
         }
 
-
         private async void FavoriteRefreshButton_Click(object sender, RoutedEventArgs e)
         {
             await HomeViewModel.UpdateFavoriteListAsync();
         }
-        
-
-
 
         private async void AppBarButton_Click(object sender, RoutedEventArgs e)
         {
@@ -282,9 +262,8 @@ namespace PRPR.BooruViewer.Views
             }
             catch (Exception ex)
             {
-                
+                Debug.WriteLine($"AppBarButton_Click Exception: {ex.Message}");
             }
-
         }
 
         private void ListViewItem_Tapped(object sender, TappedRoutedEventArgs e)
@@ -292,17 +271,11 @@ namespace PRPR.BooruViewer.Views
             Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterRatioFlyout"] as Flyout);
             Flyout.ShowAttachedFlyout(FilterButton);
         }
-        
 
         private async void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
         {
-
-
             await HomeViewModel.SearchAsync(SearchBox.Text);
         }
-
-
-
 
         private void SearchBox_Loaded(object sender, RoutedEventArgs e)
         {
@@ -311,17 +284,16 @@ namespace PRPR.BooruViewer.Views
             textbox.SelectionChanged += Textbox_SelectionChanged;
         }
 
-
         private int lastSelectionStart = 0;
 
         private void Textbox_SelectionChanged(object sender, RoutedEventArgs e)
         {
-            // Re-search suggestions if the user move the cursor position to another word
-            // Except the cursor is at the end, bcs it is probably caused by a SuggestionChosen event
+            // Re-search suggestions if the user moves the cursor position to another word
+            // Except the cursor is at the end, because it is probably caused by a SuggestionChosen event
             var newSelectionStart = (sender as TextBox).SelectionStart;
-            int newSelecetedKeyIndex = (sender as TextBox).Text.Take(newSelectionStart).Count(o => o == ' ');
-            int lastSelecetedKeyIndex = (sender as TextBox).Text.Take(lastSelectionStart).Count(o => o == ' ');
-            if (lastSelecetedKeyIndex != newSelecetedKeyIndex && newSelectionStart != (sender as TextBox).Text.Length)
+            int newSelectedKeyIndex = (sender as TextBox).Text.Take(newSelectionStart).Count(o => o == ' ');
+            int lastSelectedKeyIndex = (sender as TextBox).Text.Take(lastSelectionStart).Count(o => o == ' ');
+            if (lastSelectedKeyIndex != newSelectedKeyIndex && newSelectionStart != (sender as TextBox).Text.Length)
             {
                 UpdateSuggestions(SearchBox);
             }
@@ -342,26 +314,26 @@ namespace PRPR.BooruViewer.Views
                 var grid = VisualTreeHelper.GetChild(sender, 0) as Grid;
                 var textbox = grid.Children.First() as TextBox;
                 var pointer = textbox.SelectionStart;
-                int selecetedKeyIndex = sender.Text.Take(pointer).Count(o => o == ' ');
+                int selectedKeyIndex = sender.Text.Take(pointer).Count(o => o == ' ');
 
                 var tags = sender.Text.Split(' ');
-                if (tags.Length >= 1 && tags[selecetedKeyIndex] != "")
+                if (tags.Length >= 1 && tags[selectedKeyIndex] != "")
                 {
-                    var results = TagDataBase.Search(tags[selecetedKeyIndex]);
+                    var results = TagDataBase.Search(tags[selectedKeyIndex]);
 
                     // Add back the other tags to the string
-                    var prefix = String.Join(" ", tags.Take(selecetedKeyIndex));
+                    var prefix = String.Join(" ", tags.Take(selectedKeyIndex));
                     if (!String.IsNullOrWhiteSpace(prefix))
                     {
                         prefix += " ";
                     }
-                    var suffix = String.Join(" ", tags.Skip(selecetedKeyIndex + 1));
+                    var suffix = String.Join(" ", tags.Skip(selectedKeyIndex + 1));
                     if (!String.IsNullOrWhiteSpace(suffix))
                     {
                         suffix = " " + suffix;
                     }
 
-                    // Also add an extra space at the end so that its easier to start typing next new type
+                    // Also add an extra space at the end so that it's easier to start typing the next new tag
                     var results2 = results.Select(o => new TagDetailInMiddle(o, prefix, suffix + " "));
 
                     // Display the tag search results
@@ -374,7 +346,7 @@ namespace PRPR.BooruViewer.Views
             }
             catch (Exception ex)
             {
-
+                Debug.WriteLine($"UpdateSuggestions Exception: {ex.Message}");
             }
         }
 
@@ -388,7 +360,6 @@ namespace PRPR.BooruViewer.Views
                 }
             }
         }
-
 
         private void Image_ImageOpened(object sender, RoutedEventArgs e)
         {
@@ -408,7 +379,6 @@ namespace PRPR.BooruViewer.Views
                 return;
             }
 
-
             var c = g.Parent as UserControl;
             if (c == null)
             {
@@ -419,14 +389,11 @@ namespace PRPR.BooruViewer.Views
             VisualStateManager.GoToState(c, "ImageLoaded", true);
         }
 
-
-
-
         private async void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             await HomeViewModel.UpdateFavoriteListAsync();
         }
-        
+
         private void BrowsePanel_ItemClick(object sender, JustifiedWrapPanel.ItemClickEventArgs e)
         {
             // Clicked a list item from the image wall
@@ -453,5 +420,34 @@ namespace PRPR.BooruViewer.Views
             this.Frame.Navigate(typeof(ImagePage), post.ToXml(), new SuppressNavigationTransitionInfo());
         }
 
+        private void MainPivot_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 根据需要处理 Pivot 选择变化事件
+        }
+
+        private void MainPivot_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 根据需要处理 Pivot 加载事件
+        }
+
+        private async void SearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            await PerformSearchAsync();
+        }
+
+        private async void OpenFilterFlyout_Click(object sender, RoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterMainFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private async Task PerformSearchAsync()
+        {
+            string keyword = SearchBox.Text;
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                await HomeViewModel.SearchAsync(keyword);
+            }
+        }
     }
 }

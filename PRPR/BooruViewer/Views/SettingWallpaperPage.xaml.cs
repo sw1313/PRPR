@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Services;
 using PRPR.BooruViewer.Tasks;
@@ -83,8 +83,15 @@ namespace PRPR.BooruViewer.Views
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            await WallpaperUpdateTask.RunAsync();
-            await SettingWallpaperViewModel.UpdateRecordsAsync();
+            try
+            {
+                await WallpaperUpdateTask.RunAsync(true);
+                await SettingWallpaperViewModel.UpdateRecordsAsync();
+            }
+            catch (Exception ex)
+            {
+                await new MessageDialog(ex.Message, "Wallpaper refresh failed").ShowAsync();
+            }
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
