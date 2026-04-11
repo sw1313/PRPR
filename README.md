@@ -13,8 +13,8 @@
 
 该应用目前已被微软商店下架。
 
-可参考其他开发者整理的离线包发布：
-[AmazingDM/PRPR Releases](https://github.com/AmazingDM/PRPR/releases/tag/2.7)
+离线包发布：
+[sw1313/PRPR]([https://github.com/sw1313/PRPR/releases/tag/2.7.4.0])
 
 ## 项目结构
 
