@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Services;
 using PRPR.BooruViewer.Tasks;
@@ -81,8 +81,15 @@ namespace PRPR.BooruViewer.Views
 
         private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            await LockscreenUpdateTask.RunAsync();
-            await SettingLockscreenViewModel.UpdateRecordsAsync();
+            try
+            {
+                await LockscreenUpdateTask.RunAsync(true);
+                await SettingLockscreenViewModel.UpdateRecordsAsync();
+            }
+            catch (Exception ex)
+            {
+                await new MessageDialog(ex.Message, "Lockscreen refresh failed").ShowAsync();
+            }
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)

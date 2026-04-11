@@ -1,4 +1,4 @@
-﻿using Microsoft.QueryStringDotNET;
+using Microsoft.QueryStringDotNET;
 using Microsoft.Toolkit.Uwp.Notifications;
 using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
@@ -25,7 +25,7 @@ namespace PRPR.BooruViewer.Tasks
             d.Complete();
         }
 
-        public static async Task RunAsync()
+        public static async Task RunAsync(bool throwOnError = false)
         {
             var yandeSettings = YandeSettings.Current;
             var appSettings = AppSettings.Current;
@@ -61,6 +61,10 @@ namespace PRPR.BooruViewer.Tasks
                 yandeSettings.WallpaperUpdateTaskCurrentImageID = old;
                 ToastService.ToastDebug("Cannot Update Wallpaper", ex.StackTrace);
                 ToastService.ToastDebug("Cannot Update Wallpaper", ex.Message);
+                if (throwOnError)
+                {
+                    throw;
+                }
             }
         }
 

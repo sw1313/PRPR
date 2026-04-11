@@ -1,4 +1,4 @@
-﻿using HtmlAgilityPack;
+using HtmlAgilityPack;
 using PRPR.BooruViewer.Models.Global;
 using System;
 using System.Diagnostics;
@@ -17,6 +17,8 @@ namespace PRPR.BooruViewer.Services
 {
     public class YandeClient
     {
+        public const string DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PRPR/1.0 Safari/537.36";
+
         public static string PASSWORD_HASH_SALT
         {
             get
@@ -47,6 +49,16 @@ namespace PRPR.BooruViewer.Services
             }
         }
 
+        public static void ApplyDefaultHeaders(HttpClient httpClient)
+        {
+            httpClient.DefaultRequestHeaders.Add("User-Agent", DEFAULT_USER_AGENT);
+        }
+
+        public static void ApplyDefaultHeaders(HttpRequestMessage message)
+        {
+            message.Headers.Add("User-Agent", DEFAULT_USER_AGENT);
+        }
+
         private static string HashPassword(string password)
         {
             var passwordBuffer = CryptographicBuffer.ConvertStringToBinary(PASSWORD_HASH_SALT.Replace("your-password", password), BinaryStringEncoding.Utf8);
@@ -61,20 +73,12 @@ namespace PRPR.BooruViewer.Services
             try
             {
                 // Log out
-                HttpWebRequest logoutRequest = WebRequest.CreateHttp($"{YandeClient.HOST}/user/logout");
-                logoutRequest.CookieContainer = new CookieContainer();
-                using (HttpWebResponse logResponse = (HttpWebResponse)(await logoutRequest.GetResponseAsync()))
+                using (var logoutClient = new HttpClient(new HttpBaseProtocolFilter()))
                 {
-                    using (Stream stream = logResponse.GetResponseStream())
+                    ApplyDefaultHeaders(logoutClient);
+                    using (var logoutResponse = await logoutClient.GetAsync(new Uri($"{YandeClient.HOST}/user/logout")))
                     {
-                        StreamReader reader = new StreamReader(stream, Encoding.UTF8);
-                        string responseString = reader.ReadToEnd();
-
-                        var x = logResponse.Cookies;
-                        foreach (Cookie item in x)
-                        {
-                            Debug.WriteLine(WebUtility.UrlDecode(item.Value));
-                        }
+                        await logoutResponse.Content.ReadAsStringAsync();
                     }
                 }
                 
@@ -84,6 +88,7 @@ namespace PRPR.BooruViewer.Services
                 filter.CacheControl.ReadBehavior = HttpCacheReadBehavior.MostRecent;
                 filter.AllowUI = false;
                 var hc = new HttpClient(filter);
+                ApplyDefaultHeaders(hc);
                 var str = await hc.GetStringAsync(new Uri($"{YandeClient.HOST}/user/login"));
 
                 
@@ -109,6 +114,7 @@ namespace PRPR.BooruViewer.Services
                 Uri uri = new Uri($"{YandeClient.HOST}/post/vote.xml?login={userName}&password_hash={passwordHash}&id={postId}");
                 using (var httpClient = new HttpClient())
                 {
+                    ApplyDefaultHeaders(httpClient);
                     var response = await httpClient.PostAsync(uri, new HttpStringContent(""));
 
                     var str = await response.Content.ReadAsStringAsync();
@@ -123,19 +129,16 @@ namespace PRPR.BooruViewer.Services
 
         public static async Task VoteAsync(int postId, string userName, string passwordHash, VoteType score)
         {
-            HttpWebRequest loginRequest = WebRequest.CreateHttp($"{YandeClient.HOST}/post/vote.xml?login={userName}&password_hash={passwordHash}&id={postId}&score={(int)score}");
-            loginRequest.Method = "POST";
-            loginRequest.ContentType = "application/x-www-form-urlencoded";
-            loginRequest.Headers["Accept-Encoding"] = "gzip, deflate";
-
-
-            using (HttpWebResponse logResponse = (HttpWebResponse)(await loginRequest.GetResponseAsync()))
+            var uri = new Uri($"{YandeClient.HOST}/post/vote.xml?login={userName}&password_hash={passwordHash}&id={postId}&score={(int)score}");
+            using (var httpClient = new HttpClient())
             {
-                using (Stream stream = logResponse.GetResponseStream())
+                var message = new HttpRequestMessage(HttpMethod.Post, uri)
                 {
-                    StreamReader reader = new StreamReader(stream, Encoding.UTF8);
-                    string responseString = reader.ReadToEnd();
-                }
+                    Content = new HttpStringContent("")
+                };
+                ApplyDefaultHeaders(message);
+                var response = await httpClient.SendRequestAsync(message);
+                var responseString = await response.Content.ReadAsStringAsync();
             }
         }
         
@@ -177,6 +180,7 @@ namespace PRPR.BooruViewer.Services
                 {
                     Content = new HttpStringContent(requestBody)
                 };
+                ApplyDefaultHeaders(message);
                 message.Content.Headers.ContentType = new HttpMediaTypeHeaderValue("application/x-www-form-urlencoded");
                 var response = await httpClient.SendRequestAsync(message);
                 var responseString = await response.Content.ReadAsStringAsync();

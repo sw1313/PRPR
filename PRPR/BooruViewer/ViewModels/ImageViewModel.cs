@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Services;
 using PRPR.Common;
@@ -198,7 +198,14 @@ namespace PRPR.BooruViewer.ViewModels
 
         public async Task UpdateIsFavorited()
         {
-            IsFavorited = await YandeClient.CheckFavorited(Post.Id);
+            if (YandeSettings.Current.IsLoggedIn)
+            {
+                IsFavorited = await YandeClient.CheckFavorited(Post.Id);
+            }
+            else
+            {
+                IsFavorited = await LocalFavoriteService.ContainsAsync(Post.Id);
+            }
         }
 
         public async Task UpdateComments()
@@ -234,14 +241,28 @@ namespace PRPR.BooruViewer.ViewModels
 
         public async Task Favorite()
         {
-            await YandeClient.AddFavoriteAsync(Post.Id);
+            if (YandeSettings.Current.IsLoggedIn)
+            {
+                await YandeClient.AddFavoriteAsync(Post.Id);
+            }
+            else
+            {
+                await LocalFavoriteService.AddOrUpdateAsync(Post);
+            }
             this.IsFavorited = true;
 
         }
 
         public async Task Unfavorite()
         {
-            await YandeClient.RemoveFavoriteAsync(Post.Id);
+            if (YandeSettings.Current.IsLoggedIn)
+            {
+                await YandeClient.RemoveFavoriteAsync(Post.Id);
+            }
+            else
+            {
+                await LocalFavoriteService.RemoveAsync(Post.Id);
+            }
             this.IsFavorited = false;
         }
 

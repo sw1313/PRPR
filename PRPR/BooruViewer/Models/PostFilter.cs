@@ -2,11 +2,8 @@
 using PRPR.Common;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PRPR.BooruViewer.Models
 {
@@ -19,229 +16,145 @@ namespace PRPR.BooruViewer.Models
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
-
         #endregion
 
-
-
-
-        private bool _isFilterSafe = true;
-
+        // 评级过滤相关的字段和属性
+        private bool _isFilterSafe = false;
         private bool _isFilterQuestionable = false;
-
         private bool _isFilterExplicit = false;
-
-
-        private bool _isFilterHorizontal = true;
-
-        private bool _isFilterVertical = true;
-
-
-        private bool _isFilterAllowHidden = false;
-
-
-
 
         public bool IsFilterSafe
         {
-            get
-            {
-                return _isFilterSafe;
-            }
-
+            get => _isFilterSafe;
             set
             {
-                _isFilterSafe = value;
-                NotifyPropertyChanged(nameof(IsFilterSafe));
-                NotifyPropertyChanged(nameof(IsFilterSafeUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterQuestionableUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterExplicitUnlocked));
-
-                NotifyPropertyChanged(nameof(Function));
+                if (_isFilterSafe != value)
+                {
+                    _isFilterSafe = value;
+                    NotifyPropertyChanged(nameof(IsFilterSafe));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
 
         public bool IsFilterQuestionable
         {
-            get
-            {
-                return _isFilterQuestionable;
-            }
-
+            get => _isFilterQuestionable;
             set
             {
-
-                _isFilterQuestionable = value;
-                NotifyPropertyChanged(nameof(IsFilterQuestionable));
-                NotifyPropertyChanged(nameof(IsFilterSafeUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterQuestionableUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterExplicitUnlocked));
-
-                NotifyPropertyChanged(nameof(Function));
+                if (_isFilterQuestionable != value)
+                {
+                    _isFilterQuestionable = value;
+                    NotifyPropertyChanged(nameof(IsFilterQuestionable));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
 
         public bool IsFilterExplicit
         {
-            get
-            {
-                return _isFilterExplicit;
-            }
-
+            get => _isFilterExplicit;
             set
             {
-
-                _isFilterExplicit = value;
-                NotifyPropertyChanged(nameof(IsFilterExplicit));
-                NotifyPropertyChanged(nameof(IsFilterSafeUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterQuestionableUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterExplicitUnlocked));
-
-                NotifyPropertyChanged(nameof(Function));
+                if (_isFilterExplicit != value)
+                {
+                    _isFilterExplicit = value;
+                    NotifyPropertyChanged(nameof(IsFilterExplicit));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
 
+        // 方向相关的字段和属性
+        private bool _isFilterHorizontal = true;
+        private bool _isFilterVertical = true;
+        private bool _isFilterAllowHidden = false;
+        private bool _isFilterAllowHeld = false;
 
         public bool IsFilterHorizontal
         {
-            get
-            {
-                return _isFilterHorizontal;
-            }
-
+            get => _isFilterHorizontal;
             set
             {
+                if (_isFilterHorizontal != value)
+                {
+                    _isFilterHorizontal = value;
+                    NotifyPropertyChanged(nameof(IsFilterHorizontal));
+                    NotifyPropertyChanged(nameof(IsFilterVerticalUnlocked));
+                    NotifyPropertyChanged(nameof(IsFilterHorizontalUnlocked));
 
-                _isFilterHorizontal = value;
-                NotifyPropertyChanged(nameof(IsFilterHorizontal));
-                NotifyPropertyChanged(nameof(IsFilterVerticalUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterHorizontalUnlocked));
-
-                NotifyPropertyChanged(nameof(Function));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
 
         public bool IsFilterVertical
         {
-            get
-            {
-                return _isFilterVertical;
-            }
-
+            get => _isFilterVertical;
             set
             {
-                _isFilterVertical = value;
-                NotifyPropertyChanged(nameof(IsFilterVertical));
-                NotifyPropertyChanged(nameof(IsFilterVerticalUnlocked));
-                NotifyPropertyChanged(nameof(IsFilterHorizontalUnlocked));
+                if (_isFilterVertical != value)
+                {
+                    _isFilterVertical = value;
+                    NotifyPropertyChanged(nameof(IsFilterVertical));
+                    NotifyPropertyChanged(nameof(IsFilterVerticalUnlocked));
+                    NotifyPropertyChanged(nameof(IsFilterHorizontalUnlocked));
 
-                NotifyPropertyChanged(nameof(Function));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
-
 
         public bool IsFilterAllowHidden
         {
-            get
-            {
-                return _isFilterAllowHidden;
-            }
-
+            get => _isFilterAllowHidden;
             set
             {
-                _isFilterAllowHidden = value;
-                NotifyPropertyChanged(nameof(IsFilterAllowHidden));
-                NotifyPropertyChanged(nameof(Function));
+                if (_isFilterAllowHidden != value)
+                {
+                    _isFilterAllowHidden = value;
+                    NotifyPropertyChanged(nameof(IsFilterAllowHidden));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
-
-
-        private bool _isFilterAllowHeld = false;
 
         public bool IsFilterAllowHeld
         {
-            get
-            {
-                return _isFilterAllowHeld;
-            }
-
+            get => _isFilterAllowHeld;
             set
             {
-                _isFilterAllowHeld = value;
-                NotifyPropertyChanged(nameof(IsFilterAllowHeld));
-                NotifyPropertyChanged(nameof(Function));
+                if (_isFilterAllowHeld != value)
+                {
+                    _isFilterAllowHeld = value;
+                    NotifyPropertyChanged(nameof(IsFilterAllowHeld));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
 
+        // 保留方向相关的解锁属性
+        public bool IsFilterHorizontalUnlocked => !IsFilterHorizontal || IsFilterVertical;
+        public bool IsFilterVerticalUnlocked => IsFilterHorizontal || !IsFilterVertical;
 
-
-        public bool IsFilterSafeUnlocked
-        {
-            get
-            {
-                return !IsFilterSafe || IsFilterQuestionable || IsFilterExplicit;
-            }
-        }
-        public bool IsFilterQuestionableUnlocked
-        {
-            get
-            {
-                return IsFilterSafe || !IsFilterQuestionable || IsFilterExplicit;
-            }
-        }
-        public bool IsFilterExplicitUnlocked
-        {
-            get
-            {
-                return IsFilterSafe || IsFilterQuestionable || !IsFilterExplicit;
-            }
-        }
-
-        // All the blacklisted tags as fucking Microsoft Store testers think sexually suggestive
-        private string _tagBlacklist = String.Join(" ", new List<string>{"bikini", "buruma", "ass", "pantsu", "bra", "torn_clothes", "no_pan" });
+        // 标签黑名单
+        private string _tagBlacklist = String.Join(" ", new List<string> { "bikini", "buruma", "ass", "pantsu", "bra", "torn_clothes", "no_pan" });
 
         public string TagBlacklist
         {
-            get
-            {
-                return _tagBlacklist;
-            }
-
+            get => _tagBlacklist;
             set
             {
-                _tagBlacklist = value;
-                NotifyPropertyChanged(nameof(TagBlacklist));
-
-                NotifyPropertyChanged(nameof(Function));
+                if (_tagBlacklist != value)
+                {
+                    _tagBlacklist = value;
+                    NotifyPropertyChanged(nameof(TagBlacklist));
+                    NotifyPropertyChanged(nameof(Function));
+                }
             }
         }
 
-
-
-
-
-        public bool IsFilterHorizontalUnlocked
-        {
-            get
-            {
-                return !IsFilterHorizontal || IsFilterVertical;
-            }
-        }
-        public bool IsFilterVerticalUnlocked
-        {
-            get
-            {
-                return IsFilterHorizontal || !IsFilterVertical;
-            }
-        }
-
-        public Func<Post, bool> Function
-        {
-            get
-            {
-                return ToFunc();
-            }
-        }
+        public Func<Post, bool> Function => ToFunc();
 
         public Func<Post, bool> ToFunc()
         {
@@ -257,18 +170,29 @@ namespace PRPR.BooruViewer.Models
 
             var tbl = TagBlacklist.Split(' ').ToList();
 
-            return (o => ((o.Rating == "s" && s) || (o.Rating == "q" && q) || (o.Rating == "e" && e))
-                         &&
-                         ((o.Width >= o.Height && h) || (o.Width < o.Height && v))
-                         &&
-                         ((o.IsShownInIndex || a))
-                         &&
-                         ((b || !o.IsHeld))
-                         &&
-                         (o.Tags.Split(' ').ToList().FirstOrDefault(tag => tbl.FirstOrDefault(t => String.Compare(t, tag, true) == 0) != default(string)) == default(string))
-                         );
+            // 判断是否需要应用评级过滤
+            bool isRatingFilterActive = s || q || e;
+
+            // 定义评级过滤条件
+            Func<Post, bool> ratingCondition = o =>
+                (o.Rating == "s" && s) ||
+                (o.Rating == "q" && q) ||
+                (o.Rating == "e" && e);
+
+            return (o =>
+                // 仅在评级过滤激活时应用评级条件
+                (!isRatingFilterActive || ratingCondition(o)) &&
+                // 方向过滤
+                ((o.Width >= o.Height && h) || (o.Width < o.Height && v)) &&
+                // 是否显示在索引中
+                ((o.IsShownInIndex || a)) &&
+                // 是否允许持有
+                ((b || !o.IsHeld)) &&
+                // 标签黑名单过滤
+                (o.Tags.Split(' ').All(tag => !tbl.Contains(tag, StringComparer.OrdinalIgnoreCase)))
+            );
         }
 
-
+        // 其他方法和属性...
     }
 }

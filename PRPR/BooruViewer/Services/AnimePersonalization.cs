@@ -1,4 +1,4 @@
-﻿using Microsoft.Toolkit.Uwp.Notifications;
+using Microsoft.Toolkit.Uwp.Notifications;
 using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Controls;
@@ -20,11 +20,20 @@ using Windows.Storage;
 using Windows.Storage.Streams;
 using Windows.System.UserProfile;
 using Windows.UI.Notifications;
+using Windows.Web.Http;
 
 namespace PRPR.BooruViewer.Services
 {
     public class AnimePersonalization
     {
+        struct ImageCandidate
+        {
+            public string Url { get; set; }
+
+            public int Width { get; set; }
+
+            public int Height { get; set; }
+        }
 
         public const string TILE_FOLDER_NAME = "Tile";
         public const string WALLPAPER_FOLDER_NAME = "Wallpaper";
@@ -62,7 +71,7 @@ namespace PRPR.BooruViewer.Services
                 {
                     // No need to download more posts data, read next post directly
                     Post post = await GetPostAtAsync(posts, postPointer);
-                    var previewBuffer = await (new Windows.Web.Http.HttpClient()).GetBufferAsync(new Uri(post.PreviewUrl));
+                    var previewBuffer = await DownloadBufferAsync(post.PreviewUrl);
                     var rects = (await DetechFromBufferAsync(previewBuffer, 5, 55)).Faces;
                     await SaveFacesForTileAsync(rects, previewBuffer, post.Id);
 
@@ -97,49 +106,28 @@ namespace PRPR.BooruViewer.Services
 
             if (posts.Count == 0)
             {
-                // No result at all, cannot update background
-                return "";
+                throw new InvalidOperationException("No posts match the current search and filter settings.");
             }
 
-            if (posts.Count - 1 < pointer)
+            if (posts.Count <= 1)
+            {
+                pointer = 0;
+            }
+            else if (posts.Count - 1 < pointer)
             {
                 // Not enough posts to shuffle, shuffle for a lower amount of posts
-                pointer = rnd.Next((int)posts.Count - 1);
+                pointer = rnd.Next(posts.Count);
             }
 
             // Select a post
             var post = posts[pointer];
 
-            var previewBuffer = await (new Windows.Web.Http.HttpClient()).GetBufferAsync(new Uri(post.PreviewUrl));
-            var largeBufferUrl = "";
-            int largeWidth = 0;
-            int largeHeight = 0;
-            switch (qualityLevel)
+            var previewBuffer = await DownloadBufferAsync(post.PreviewUrl);
+            var imageCandidate = GetBestImageCandidate(post, qualityLevel);
+
+            if (String.IsNullOrEmpty(imageCandidate.Url))
             {
-                case 2:
-                    if (!String.IsNullOrEmpty(post.FileUrl))
-                    {
-                        largeBufferUrl = post.FileUrl;
-                        largeWidth = post.Width;
-                        largeHeight = post.Height;
-                    }
-                    else
-                    {
-                        largeBufferUrl = post.JpegUrl;
-                        largeWidth = post.JpegWidth;
-                        largeHeight = post.JpegHeight;
-                    }
-                    break;
-                case 1:
-                    largeBufferUrl = post.JpegUrl;
-                    largeWidth = post.JpegWidth;
-                    largeHeight = post.JpegHeight;
-                    break;
-                default:
-                    largeBufferUrl = post.SampleUrl;
-                    largeWidth = post.SampleWidth;
-                    largeHeight = post.SampleHeight;
-                    break;
+                throw new InvalidOperationException("Cannot find a usable image URL for the selected post.");
             }
 
             // Try to delete all files of previous images
@@ -159,7 +147,7 @@ namespace PRPR.BooruViewer.Services
 
 
             // Downlaod the image and create a copy ready to crop
-            var largeBuffer = await (new Windows.Web.Http.HttpClient()).GetBufferAsync(new Uri(largeBufferUrl));
+            var largeBuffer = await DownloadBufferAsync(imageCandidate.Url);
             var imageFile = await imageFolder.CreateFileAsync($"{post.Id}.jpg", CreationCollisionOption.ReplaceExisting);
             await FileIO.WriteBufferAsync(imageFile, largeBuffer);
             var jpegFile = await imageFolder.CreateFileAsync($"{post.Id}-original.jpg", CreationCollisionOption.ReplaceExisting);
@@ -167,44 +155,105 @@ namespace PRPR.BooruViewer.Services
 
             
             // Crop the image
-            var imageSize = new Size(largeWidth, largeHeight);
+            var imageSize = new Size(imageCandidate.Width, imageCandidate.Height);
             await CropImageFile(imageFile, imageSize, method, screenSize, previewBuffer);
 
 
             var id = "";
-            if (UserProfilePersonalizationSettings.IsSupported())
+            if (!UserProfilePersonalizationSettings.IsSupported())
             {
-                if (isLockscreen)
+                throw new InvalidOperationException("System personalization is not supported on this device.");
+            }
+
+            if (isLockscreen)
+            {
+                var b = await UserProfilePersonalizationSettings.Current.TrySetLockScreenImageAsync(imageFile);
+                if (b)
                 {
-                    var b = await UserProfilePersonalizationSettings.Current.TrySetLockScreenImageAsync(imageFile);
-                    if (b)
+                    using (var db = new AppDbContext())
                     {
-                        using (var db = new AppDbContext())
-                        {
-                            db.LockScreenRecords.Add(LockScreenRecord.Create(post));
-                            db.SaveChanges();
-                        }
-                        id = post.Id.ToString();
+                        db.LockScreenRecords.Add(LockScreenRecord.Create(post));
+                        db.SaveChanges();
                     }
+                    id = post.Id.ToString();
                 }
                 else
                 {
-                    var b = await UserProfilePersonalizationSettings.Current.TrySetWallpaperImageAsync(imageFile);
-                    if (b)
+                    throw new InvalidOperationException("System rejected the lockscreen image update.");
+                }
+            }
+            else
+            {
+                var b = await UserProfilePersonalizationSettings.Current.TrySetWallpaperImageAsync(imageFile);
+                if (b)
+                {
+                    using (var db = new AppDbContext())
                     {
-                        using (var db = new AppDbContext())
-                        {
-                            db.WallpaperRecords.Add(WallpaperRecord.Create(post));
-                            db.SaveChanges();
-                        }
-                        id = post.Id.ToString();
+                        db.WallpaperRecords.Add(WallpaperRecord.Create(post));
+                        db.SaveChanges();
                     }
+                    id = post.Id.ToString();
+                }
+                else
+                {
+                    throw new InvalidOperationException("System rejected the wallpaper image update.");
                 }
             }
 
 
             // Return the latest ID if there is an update
             return id;
+        }
+
+        private static ImageCandidate GetBestImageCandidate(Post post, int qualityLevel)
+        {
+            var original = CreateImageCandidate(post.FileUrl, post.Width, post.Height);
+            var jpeg = CreateImageCandidate(post.JpegUrl, post.JpegWidth, post.JpegHeight);
+            var sample = CreateImageCandidate(post.SampleUrl, post.SampleWidth, post.SampleHeight);
+            var preview = CreateImageCandidate(post.PreviewUrl, post.PreviewWidth, post.PreviewHeight);
+
+            switch (qualityLevel)
+            {
+                case 2:
+                    return FirstAvailable(original, jpeg, sample, preview);
+                case 1:
+                    return FirstAvailable(jpeg, original, sample, preview);
+                default:
+                    return FirstAvailable(sample, jpeg, original, preview);
+            }
+        }
+
+        private static ImageCandidate CreateImageCandidate(string url, int width, int height)
+        {
+            return new ImageCandidate()
+            {
+                Url = url,
+                Width = width,
+                Height = height
+            };
+        }
+
+        private static ImageCandidate FirstAvailable(params ImageCandidate[] candidates)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (!String.IsNullOrEmpty(candidate.Url) && candidate.Width > 0 && candidate.Height > 0)
+                {
+                    return candidate;
+                }
+            }
+
+            return default(ImageCandidate);
+        }
+
+        private static async Task<IBuffer> DownloadBufferAsync(string url)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                YandeClient.ApplyDefaultHeaders(httpClient);
+                httpClient.DefaultRequestHeaders.Add("Referer", YandeClient.HOST);
+                return await httpClient.GetBufferAsync(new Uri(url));
+            }
         }
 
         private static async Task CropImageFile(StorageFile imageFile, Size imageSize, CropMethod method, Size screenSize, IBuffer previewBuffer)

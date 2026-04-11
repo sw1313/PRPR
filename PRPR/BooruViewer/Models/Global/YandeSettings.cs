@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Services;
 using PRPR.BooruViewer.Tasks;
 using PRPR.Common.Models.Global;
@@ -59,9 +59,6 @@ namespace PRPR.BooruViewer.Models.Global
 
         #endregion
 
-
-
-
         #region Login info
 
         public bool IsLoggedIn
@@ -83,7 +80,7 @@ namespace PRPR.BooruViewer.Models.Global
                 AddOrUpdateValue(GetCallerName(), value, false);
             }
         }
-        
+
         public string PasswordHash
         {
             get
@@ -95,7 +92,7 @@ namespace PRPR.BooruViewer.Models.Global
                 AddOrUpdateValue(GetCallerName(), value, false);
             }
         }
-        
+
         public string UserID
         {
             get
@@ -120,9 +117,6 @@ namespace PRPR.BooruViewer.Models.Global
 
         #endregion
 
-
-        
-
         public bool IsRatingFilterUnlocked
         {
             get
@@ -134,9 +128,6 @@ namespace PRPR.BooruViewer.Models.Global
                 AddOrUpdateValue(GetCallerName(), value, false);
             }
         }
-
-
-
 
         private PostFilter _searchPostFilter = null;
 
@@ -176,10 +167,8 @@ namespace PRPR.BooruViewer.Models.Global
                 }
                 else
                 {
-                    // WTF
+                    // Handle null if necessary
                 }
-
-
 
                 var s = SerializationService.SerializeToString(value);
                 AddOrUpdateValue(GetCallerName(), s, false);
@@ -191,9 +180,6 @@ namespace PRPR.BooruViewer.Models.Global
             var s = SerializationService.SerializeToString(_searchPostFilter);
             AddOrUpdateValue(nameof(SearchPostFilter), s, false);
         }
-
-
-
 
         private PostFilter _wallpaperPostFilter = null;
 
@@ -233,10 +219,8 @@ namespace PRPR.BooruViewer.Models.Global
                 }
                 else
                 {
-                    // WTF
+                    // Handle null if necessary
                 }
-
-
 
                 var s = SerializationService.SerializeToString(value);
                 AddOrUpdateValue(GetCallerName(), s, false);
@@ -248,9 +232,6 @@ namespace PRPR.BooruViewer.Models.Global
             var s = SerializationService.SerializeToString(_wallpaperPostFilter);
             AddOrUpdateValue(nameof(WallpaperPostFilter), s, false);
         }
-
-
-
 
         private PostFilter _lockscreenPostFilter = null;
 
@@ -290,10 +271,8 @@ namespace PRPR.BooruViewer.Models.Global
                 }
                 else
                 {
-                    // WTF
+                    // Handle null if necessary
                 }
-
-
 
                 var s = SerializationService.SerializeToString(value);
                 AddOrUpdateValue(GetCallerName(), s, false);
@@ -306,12 +285,7 @@ namespace PRPR.BooruViewer.Models.Global
             AddOrUpdateValue(nameof(LockscreenPostFilter), s, false);
         }
 
-
-        
-
-
         #region Tile settings
-
 
         private PostFilter _tilePostFilter = null;
 
@@ -351,10 +325,8 @@ namespace PRPR.BooruViewer.Models.Global
                 }
                 else
                 {
-                    // WTF
+                    // Handle null if necessary
                 }
-
-
 
                 var s = SerializationService.SerializeToString(value);
                 AddOrUpdateValue(GetCallerName(), s, false);
@@ -386,7 +358,7 @@ namespace PRPR.BooruViewer.Models.Global
                         }
                         catch (Exception ex)
                         {
-
+                            // 处理异常
                         }
                         if (IsTaskRegistered(BackgroundTaskType.Tile))
                         {
@@ -476,13 +448,9 @@ namespace PRPR.BooruViewer.Models.Global
             }
         }
 
-
         #endregion
 
-
-
         #region Wallpaper settings
-
 
         public bool WallpaperUpdateTaskEnabled
         {
@@ -503,7 +471,7 @@ namespace PRPR.BooruViewer.Models.Global
                         }
                         catch (Exception ex)
                         {
-
+                            // 处理异常
                         }
                         if (IsTaskRegistered(BackgroundTaskType.Wallpaper))
                         {
@@ -681,13 +649,9 @@ namespace PRPR.BooruViewer.Models.Global
             }
         }
 
-
         #endregion
 
-
-
         #region Lockscreen settings
-
 
         public bool LockscreenUpdateTaskEnabled
         {
@@ -708,7 +672,7 @@ namespace PRPR.BooruViewer.Models.Global
                         }
                         catch (Exception ex)
                         {
-
+                            // 处理异常
                         }
                         if (IsTaskRegistered(BackgroundTaskType.Lockscreen))
                         {
@@ -868,8 +832,6 @@ namespace PRPR.BooruViewer.Models.Global
             }
         }
 
-
-
         public int LockscreenUpdateTaskQuality
         {
             get
@@ -890,10 +852,6 @@ namespace PRPR.BooruViewer.Models.Global
 
         #endregion
 
-
-
-
-
         public string CurrentAppVersion
         {
             get
@@ -907,13 +865,6 @@ namespace PRPR.BooruViewer.Models.Global
                 return appVersion;
             }
         }
-
-
-
-
-
-
-
 
         private bool IsTaskRegistered(BackgroundTaskType type)
         {
@@ -931,8 +882,6 @@ namespace PRPR.BooruViewer.Models.Global
 
         private void UnregisterTask(BackgroundTaskType type)
         {
-            //BackgroundExecutionManager.RequestAccessAsync().AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
-
             foreach (var task in BackgroundTaskRegistration.AllTasks)
             {
                 var taskName = GetTaskName(type);
@@ -952,14 +901,7 @@ namespace PRPR.BooruViewer.Models.Global
                 var builder = new BackgroundTaskBuilder();
                 
                 builder.Name = GetTaskName(type);
-                
-#if DEBUG
-                builder.SetTrigger(new SystemTrigger(SystemTriggerType.TimeZoneChange, false));
                 builder.SetTrigger(new TimeTrigger(GetTaskTimeSpan(type), false));
-#else
-                builder.SetTrigger(new TimeTrigger(GetTaskTimeSpan(type), false));
-#endif
-
 
                 builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
 
@@ -968,21 +910,16 @@ namespace PRPR.BooruViewer.Models.Global
                     builder.AddCondition(new SystemCondition(SystemConditionType.FreeNetworkAvailable));
                 }
 
-                // If the condition changes while the background task is executing then it will be canceled.
-                //builder.CancelOnConditionLoss = true;
-
                 var r = builder.Register();
 
                 // Update the version of the task
                 SetTaskAppVersion(type, CurrentAppVersion);
-                
 
                 Debug.WriteLine($"Registered {builder.Name}");
             }
             catch (Exception ex)
             {
-                // TODO: debug
-                //new MessageDialog(ex.Message).ShowAsync();
+                // 处理异常
                 throw;
             }
         }
@@ -992,8 +929,6 @@ namespace PRPR.BooruViewer.Models.Global
             UnregisterTask(type);
             RegisterTask(type);
         }
-
-
 
         private uint GetTaskTimeSpan(BackgroundTaskType type)
         {
@@ -1025,6 +960,21 @@ namespace PRPR.BooruViewer.Models.Global
                     break;
             }
             return nameof(TileUpdateTask);
+        }
+
+        private string GetTaskEntryPoint(BackgroundTaskType type)
+        {
+            switch (type)
+            {
+                case BackgroundTaskType.Lockscreen:
+                    return "PRPR.BooruViewer.Tasks.LockscreenUpdateTask";
+                case BackgroundTaskType.Wallpaper:
+                    return "PRPR.BooruViewer.Tasks.WallpaperUpdateTask";
+                case BackgroundTaskType.Tile:
+                    return "PRPR.BooruViewer.Tasks.TileUpdateTask";
+                default:
+                    return "PRPR.BooruViewer.Tasks.TileUpdateTask";
+            }
         }
 
         private bool GetTaskOnMeteredNetwork(BackgroundTaskType type)
@@ -1061,13 +1011,7 @@ namespace PRPR.BooruViewer.Models.Global
             }
         }
 
-
-
-
-
         #region other settings
-
-
 
         public string DefaultDownloadPath
         {
@@ -1080,7 +1024,6 @@ namespace PRPR.BooruViewer.Models.Global
                 AddOrUpdateValue(GetCallerName(), value, false);
             }
         }
-
 
         public bool IsDefaultDownloadPathEnabled
         {
@@ -1095,10 +1038,6 @@ namespace PRPR.BooruViewer.Models.Global
         }
 
         #endregion
-
-
-
-
 
         public enum BackgroundTaskType
         {

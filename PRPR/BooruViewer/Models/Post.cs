@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Services;
+using PRPR.BooruViewer.Services;
 using PRPR.Common.Controls;
 using PRPR.Common.Models;
 using System;
@@ -15,6 +15,8 @@ namespace PRPR.BooruViewer.Models
     [XmlType("post")]
     public class Post : IJustifiedWrapPanelItem
     {
+        private const int MaxThumbnailSampleFileSize = 450 * 1024;
+
         /*
 <post id="431721" tags="ass breasts cameltoe christmas nipples no_bra pantsu string_panties tenzeru thighhighs topless" created_at="1517064967" updated_at="1517064969" 
 creator_id="25882" approver_id="" author="Mr_GT" change="2277917" source="https://i.pximg.net/img-original/img/2017/12/29/07/19/48/66514457_p1.jpg" score="46" 
@@ -206,6 +208,22 @@ frames_pending_string="" frames_string="" is_note_locked="false" last_noted_at="
             get
             {
                 return this.JpegFileSize == 0;
+            }
+        }
+
+        [XmlIgnore]
+        public string BrowseThumbnailUrl
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(SampleUrl) &&
+                    SampleFileSize > 0 &&
+                    SampleFileSize <= MaxThumbnailSampleFileSize)
+                {
+                    return SampleUrl;
+                }
+
+                return PreviewUrl;
             }
         }
 
