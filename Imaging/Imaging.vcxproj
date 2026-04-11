@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM">
@@ -99,21 +99,33 @@
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(ProjectDir)..\Debug\Imaging\</OutDir>
+    <IntDir>$(ProjectDir)..\Debug\Imaging\intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(ProjectDir)..\Release\Imaging\</OutDir>
+    <IntDir>$(ProjectDir)..\Release\Imaging\intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(ProjectDir)..\ARM\Debug\Imaging\</OutDir>
+    <IntDir>$(ProjectDir)..\ARM\Debug\Imaging\intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(ProjectDir)..\ARM\Release\Imaging\</OutDir>
+    <IntDir>$(ProjectDir)..\ARM\Release\Imaging\intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(ProjectDir)..\x64\Debug\Imaging\</OutDir>
+    <IntDir>$(ProjectDir)..\x64\Debug\Imaging\intermediate\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <GenerateManifest>false</GenerateManifest>
+    <OutDir>$(ProjectDir)..\x64\Release\Imaging\</OutDir>
+    <IntDir>$(ProjectDir)..\x64\Release\Imaging\intermediate\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -227,22 +239,22 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets" Condition="Exists('..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets')" />
-    <Import Project="..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets" Condition="Exists('..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets')" />
-    <Import Project="..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets" Condition="Exists('..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets')" />
-    <Import Project="..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets" Condition="Exists('..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets')" />
-    <Import Project="..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets" Condition="Exists('..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets')" />
-    <Import Project="..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets" Condition="Exists('..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets')" />
+    <Import Project="..\..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets" Condition="Exists('..\..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets')" />
+    <Import Project="..\..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets" Condition="Exists('..\..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets')" />
+    <Import Project="..\..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets" Condition="Exists('..\..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets')" />
+    <Import Project="..\..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets" Condition="Exists('..\..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets')" />
+    <Import Project="..\..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets" Condition="Exists('..\..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets')" />
+    <Import Project="..\..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets" Condition="Exists('..\..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets'))" />
-    <Error Condition="!Exists('..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets'))" />
-    <Error Condition="!Exists('..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets'))" />
-    <Error Condition="!Exists('..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets'))" />
-    <Error Condition="!Exists('..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets'))" />
-    <Error Condition="!Exists('..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets'))" />
+    <Error Condition="!Exists('..\..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\OpenCV.UWP.native.core.0.0.2-alpha\build\native\OpenCV.UWP.native.core.targets'))" />
+    <Error Condition="!Exists('..\..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\OpenCV.UWP.native.imgproc.0.0.2-alpha\build\native\OpenCV.UWP.native.imgproc.targets'))" />
+    <Error Condition="!Exists('..\..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\OpenCV.UWP.native.ml.0.0.2-alpha\build\native\OpenCV.UWP.native.ml.targets'))" />
+    <Error Condition="!Exists('..\..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\OpenCV.UWP.native.objdetect.0.0.2-alpha\build\native\OpenCV.UWP.native.objdetect.targets'))" />
+    <Error Condition="!Exists('..\..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\OpenCV.UWP.native.imgcodecs.0.0.2-alpha\build\native\OpenCV.UWP.native.imgcodecs.targets'))" />
+    <Error Condition="!Exists('..\..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\OpenCV.UWP.native.photo.0.0.2-alpha\build\native\OpenCV.UWP.native.photo.targets'))" />
   </Target>
 </Project>
