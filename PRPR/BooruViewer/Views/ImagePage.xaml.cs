@@ -1,5 +1,6 @@
 using PRPR.Common;
 using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Services;
 using PRPR.BooruViewer.ViewModels;
 using System;
@@ -752,5 +753,90 @@ namespace PRPR.BooruViewer.Views
                 }
             }
         }
+
+        #region Tag context menu handlers
+
+        private static TagDetail GetTagFromMenuItem(object sender)
+        {
+            var item = sender as FrameworkElement;
+            while (item != null && !(item.DataContext is TagDetail))
+                item = item.Parent as FrameworkElement;
+            return item?.DataContext as TagDetail;
+        }
+
+        private void SetWpSearchTag_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = GetTagFromMenuItem(sender);
+            if (tag == null) return;
+            var current = YandeSettings.Current.WallpaperUpdateTaskSearchKey ?? "";
+            if (!current.Split(' ').Contains(tag.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                YandeSettings.Current.WallpaperUpdateTaskSearchKey =
+                    string.IsNullOrWhiteSpace(current) ? tag.Name : current + " " + tag.Name;
+            }
+        }
+
+        private void SetLsSearchTag_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = GetTagFromMenuItem(sender);
+            if (tag == null) return;
+            var current = YandeSettings.Current.LockscreenUpdateTaskSearchKey ?? "";
+            if (!current.Split(' ').Contains(tag.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                YandeSettings.Current.LockscreenUpdateTaskSearchKey =
+                    string.IsNullOrWhiteSpace(current) ? tag.Name : current + " " + tag.Name;
+            }
+        }
+
+        private void SetWpBlacklistTag_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = GetTagFromMenuItem(sender);
+            if (tag == null) return;
+            var filter = YandeSettings.Current.WallpaperPostFilter;
+            var list = filter.TagBlacklist ?? "";
+            if (!list.Split(' ').Contains(tag.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                filter.TagBlacklist = string.IsNullOrWhiteSpace(list) ? tag.Name : list + " " + tag.Name;
+            }
+        }
+
+        private void SetLsBlacklistTag_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = GetTagFromMenuItem(sender);
+            if (tag == null) return;
+            var filter = YandeSettings.Current.LockscreenPostFilter;
+            var list = filter.TagBlacklist ?? "";
+            if (!list.Split(' ').Contains(tag.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                filter.TagBlacklist = string.IsNullOrWhiteSpace(list) ? tag.Name : list + " " + tag.Name;
+            }
+        }
+
+        private async void TranslateTag_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = GetTagFromMenuItem(sender);
+            if (tag == null) return;
+
+            var prefill = !string.IsNullOrEmpty(tag.ZhName) ? tag.ZhName : tag.Name;
+            var inputBox = new TextBox { Text = prefill, SelectionStart = prefill.Length };
+            var dialog = new ContentDialog
+            {
+                Title = $"翻译或备注 - {tag.Name}",
+                Content = inputBox,
+                PrimaryButtonText = "确定",
+                CloseButtonText = "取消",
+            };
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                var repo = TagTranslationRepository.Instance;
+                await repo.EnsureLoadedAsync();
+                await repo.SaveUserOverrideAsync(tag.Name, inputBox.Text);
+                tag.ZhName = inputBox.Text?.Trim();
+                RefreshTagsWrapBlock(TagsWrapPanel);
+            }
+        }
+
+        #endregion
     }
 }

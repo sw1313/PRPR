@@ -29,9 +29,8 @@ namespace PRPR.BooruViewer.Services
 
         public static async Task DownloadLatestTagDBAsync()
         {
-            Windows.Web.Http.HttpClient httpClient2 = new Windows.Web.Http.HttpClient();
-            YandeClient.ApplyDefaultHeaders(httpClient2);
-            var json = await httpClient2.GetStringAsync(new Uri($"{YandeClient.HOST}/tag/summary.json"));
+            Windows.Web.Http.HttpClient httpClient2 = YandeClient.CreateHttpClient();
+            var json = await YandeClient.GetStringAsync(httpClient2, new Uri($"{YandeClient.HOST}/tag/summary.json"));
             
             
             JsonObject root = JsonValue.Parse(json).GetObject();
@@ -126,6 +125,17 @@ namespace PRPR.BooruViewer.Services
 
         public string Parent { get; set; } = null;
 
+        public string ZhName { get; set; }
+
+        public string DisplayName
+        {
+            get
+            {
+                if (!string.IsNullOrEmpty(ZhName))
+                    return $"{ZhName}({Name})";
+                return Name;
+            }
+        }
 
         public bool IsAlias
         {
@@ -150,6 +160,7 @@ namespace PRPR.BooruViewer.Services
             Name = tag.Name;
             Type = tag.Type;
             Parent = tag.Parent;
+            ZhName = tag.ZhName;
             Prefix = prefix;
             Suffix = suffix;
         }
@@ -158,8 +169,12 @@ namespace PRPR.BooruViewer.Services
 
         public string Suffix { get; set; } = "";
 
-        
         public override string ToString()
+        {
+            return Prefix + this.DisplayName + Suffix;
+        }
+
+        public string ToSearchString()
         {
             return Prefix + this.Name + Suffix;
         }

@@ -187,7 +187,22 @@
                     </Grid>
                 </ListViewItem>
 
-                <TextBox x:Uid="/BooruHomePage/TextBoxBlacklist" Header="黑名單標籤" Height="200" TextWrapping="Wrap" Text="{Binding TagBlacklist, Mode=TwoWay}"/>
+                <AutoSuggestBox x:Name="BlacklistTagBox" Header="黑名單標籤" 
+                                Text="{Binding TagBlacklist, Mode=TwoWay}"
+                                PlaceholderText="用空格分隔標籤"
+                                TextChanged="BlacklistTagBox_TextChanged"
+                                SuggestionChosen="BlacklistTagBox_SuggestionChosen">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Padding="4" Orientation="Horizontal" Margin="0,2">
+                                <StackPanel.Background>
+                                    <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
+                                </StackPanel.Background>
+                                <TextBlock Text="{Binding DisplayName}" Margin="4,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
                 <TextBlock x:Uid="/BooruHomePage/TextBlockBlacklist" Text="所有包含黑名單標籤的貼圖將被隱藏，用空格分隔標籤。注意此黑名單不會與您yandere帳號的網頁版設置同步。" TextWrapping="Wrap"/>
             </StackPanel>
         </Flyout>
@@ -398,6 +413,7 @@
                             <Grid HorizontalAlignment="Stretch" Padding="4">
                                 <AutoSuggestBox x:Uid="/BooruHomePage/AutoSuggestBoxSearch" x:Name="SearchBox" HorizontalAlignment="Stretch"
                                                 QuerySubmitted="SearchBox_QuerySubmitted" 
+                                                SuggestionChosen="SearchBox_SuggestionChosen"
                                                 QueryIcon="Find" 
                                                 TextChanged="SearchBox_TextChanged" BorderThickness="1"
                                                 VerticalAlignment="Center"
@@ -416,7 +432,7 @@
                                                     <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
                                                 </StackPanel.Background>
                                                 <SymbolIcon Symbol="{Binding Type, Converter={StaticResource TagTypeSymbolConverter}}"/>
-                                                <TextBlock Text="{Binding Name}" Margin="8,0,0,0"/>
+                                                <TextBlock Text="{Binding DisplayName}" Margin="8,0,0,0"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </AutoSuggestBox.ItemTemplate>

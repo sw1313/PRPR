@@ -84,14 +84,13 @@ namespace PRPR.BooruViewer.Models
 
         public static async Task<Posts> DownloadPostsAsync(int page, string uri)
         {
-            using (HttpClient httpClient = new HttpClient())
+            using (HttpClient httpClient = YandeClient.CreateHttpClient())
             {
-                YandeClient.ApplyDefaultHeaders(httpClient);
                 var normalizedUri = NormalizeUri(uri);
                 var fullUri = BuildPageUri(normalizedUri, page);
 
                 // 发送 GET 请求并获取 XML 内容
-                var xml = await httpClient.GetStringAsync(new Uri(fullUri));
+                var xml = await YandeClient.GetStringAsync(httpClient, new Uri(fullUri));
                 var p = Posts.ReadFromXml(xml);
                 p.Uri = normalizedUri;
                 p.NextPage = page + 1;

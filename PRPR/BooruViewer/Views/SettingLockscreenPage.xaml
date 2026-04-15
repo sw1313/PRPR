@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="PRPR.BooruViewer.Views.SettingLockscreenPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -10,10 +10,12 @@
 
     xmlns:Extensions="using:PRPR.Common.Extensions"
     xmlns:ViewModels="using:PRPR.BooruViewer.ViewModels"
+    xmlns:Converters="using:PRPR.BooruViewer.Converters"
     mc:Ignorable="d">
 
 
     <Page.Resources>
+        <Converters:TagTypeColorConverter x:Key="TagTypeColorConverter"/>
 
         <Flyout Placement="Bottom" x:Key="FilterMainFlyout">
             <Flyout.FlyoutPresenterStyle>
@@ -237,7 +239,22 @@
                     </Grid>
                 </ListViewItem>
 
-                <TextBox x:Uid="/BooruHomePage/TextBoxBlacklist" Header="黑名單標籤" Height="200" TextWrapping="Wrap" Text="{Binding TagBlacklist, Mode=TwoWay}"/>
+                <AutoSuggestBox x:Name="BlacklistTagBox" Header="黑名單標籤" 
+                                Text="{Binding TagBlacklist, Mode=TwoWay}"
+                                PlaceholderText="用空格分隔標籤"
+                                TextChanged="BlacklistTagBox_TextChanged"
+                                SuggestionChosen="BlacklistTagBox_SuggestionChosen">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Padding="4" Orientation="Horizontal" Margin="0,2">
+                                <StackPanel.Background>
+                                    <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
+                                </StackPanel.Background>
+                                <TextBlock Text="{Binding DisplayName}" Margin="4,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
                 <TextBlock x:Uid="/BooruHomePage/TextBlockBlacklist" Text="所有包含黑名單標籤的貼圖將被隱藏，用空格分隔標籤。注意此黑名單不會與您yandere帳號的網頁版設置同步。" TextWrapping="Wrap"/>
             </StackPanel>
         </Flyout>
@@ -283,7 +300,22 @@
 
 
 
-                    <TextBox x:Uid="/BooruSettingPage/TextBoxTags" x:Name="TileTextBox" Header="搜索標籤" Text="{Binding LockscreenUpdateTaskSearchKey, Mode=TwoWay, Source={StaticResource YandeSettings}}" PlaceholderText="e.g. kancolle score:40.."/>
+                    <AutoSuggestBox x:Name="SearchTagBox" Header="搜索標籤" 
+                                    Text="{Binding LockscreenUpdateTaskSearchKey, Mode=TwoWay, Source={StaticResource YandeSettings}}" 
+                                    PlaceholderText="e.g. kancolle score:40.."
+                                    TextChanged="SearchTagBox_TextChanged"
+                                    SuggestionChosen="SearchTagBox_SuggestionChosen">
+                        <AutoSuggestBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Padding="4" Orientation="Horizontal" Margin="0,2">
+                                    <StackPanel.Background>
+                                        <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
+                                    </StackPanel.Background>
+                                    <TextBlock Text="{Binding DisplayName}" Margin="4,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </AutoSuggestBox.ItemTemplate>
+                    </AutoSuggestBox>
 
                     <Button FCU:Style="{StaticResource ButtonRevealStyle}" x:Name="FilterButton" Margin="0,8" HorizontalAlignment="Left"  Click="FilterButton_Click" >
                         <StackPanel Orientation="Horizontal">

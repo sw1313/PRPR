@@ -223,5 +223,84 @@ $"You have 90% chance to get a new image for {Search(0.90, timeSpans)} minutes.\
                 await new MessageDialog(ex.Message, "Error").ShowAsync();
             }
         }
+
+        private void SearchTagBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
+            UpdateTagSuggestions(sender);
+        }
+
+        private void SearchTagBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is TagDetailInMiddle chosen)
+                sender.Text = chosen.ToSearchString().Trim();
+        }
+
+        private void BlacklistTagBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
+            UpdateTagSuggestions(sender);
+        }
+
+        private void BlacklistTagBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is TagDetailInMiddle chosen)
+                sender.Text = chosen.ToSearchString().Trim();
+        }
+
+        private void UpdateTagSuggestions(AutoSuggestBox sender)
+        {
+            try
+            {
+                var text = sender.Text ?? "";
+                var grid = VisualTreeHelper.GetChild(sender, 0) as Grid;
+                var textbox = grid?.Children.FirstOrDefault() as TextBox;
+                int pointer = textbox?.SelectionStart ?? text.Length;
+
+                var tags = text.Split(' ');
+                int selectedKeyIndex = text.Take(pointer).Count(c => c == ' ');
+                if (selectedKeyIndex >= tags.Length) selectedKeyIndex = tags.Length - 1;
+
+                if (tags.Length < 1 || string.IsNullOrEmpty(tags[selectedKeyIndex]))
+                {
+                    sender.ItemsSource = null;
+                    return;
+                }
+
+                var keyword = tags[selectedKeyIndex];
+                var results = TagDataBase.Search(keyword).Take(20).ToList();
+                var transRepo = TagTranslationRepository.Instance;
+                foreach (var tag in results)
+                {
+                    var trans = transRepo.Lookup(tag.Name);
+                    if (trans != null && !string.IsNullOrEmpty(trans.ZhName))
+                        tag.ZhName = trans.ZhName;
+                }
+
+                var transResults = transRepo.Search(keyword, 20);
+                var existingNames = new HashSet<string>(results.Select(r => r.Name));
+                foreach (var te in transResults)
+                {
+                    if (existingNames.Contains(te.Name)) continue;
+                    TagDetail td;
+                    if (!TagDataBase.AllTags.TryGetValue(te.Name, out td))
+                        td = new TagDetail { Name = te.Name, Type = (TagType)te.Type };
+                    td.ZhName = te.ZhName;
+                    results.Add(td);
+                    if (results.Count >= 20) break;
+                }
+
+                var prefix = string.Join(" ", tags.Take(selectedKeyIndex));
+                if (!string.IsNullOrWhiteSpace(prefix)) prefix += " ";
+                var suffix = string.Join(" ", tags.Skip(selectedKeyIndex + 1));
+                if (!string.IsNullOrWhiteSpace(suffix)) suffix = " " + suffix;
+
+                sender.ItemsSource = results.Select(o => new TagDetailInMiddle(o, prefix, suffix + " "));
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"UpdateTagSuggestions Exception: {ex.Message}");
+            }
+        }
     }
 }

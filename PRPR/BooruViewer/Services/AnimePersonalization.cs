@@ -248,11 +248,9 @@ namespace PRPR.BooruViewer.Services
 
         private static async Task<IBuffer> DownloadBufferAsync(string url)
         {
-            using (var httpClient = new HttpClient())
+            using (var httpClient = YandeClient.CreateHttpClient())
             {
-                YandeClient.ApplyDefaultHeaders(httpClient);
-                httpClient.DefaultRequestHeaders.Add("Referer", YandeClient.HOST);
-                return await httpClient.GetBufferAsync(new Uri(url));
+                return await YandeClient.GetBufferAsync(httpClient, new Uri(url));
             }
         }
 

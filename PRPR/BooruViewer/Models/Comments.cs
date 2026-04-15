@@ -19,9 +19,8 @@ namespace PRPR.BooruViewer.Models
     {
         public static async Task<Comments> GetComments(int postId)
         {
-            HttpClient httpClient = new HttpClient();
-            YandeClient.ApplyDefaultHeaders(httpClient);
-            var xml = await httpClient.GetStringAsync(new Uri($"{YandeClient.HOST}/comment.xml?post_id={postId}"));
+            HttpClient httpClient = YandeClient.CreateHttpClient();
+            var xml = await YandeClient.GetStringAsync(httpClient, new Uri($"{YandeClient.HOST}/comment.xml?post_id={postId}"));
             var p = Comments.ReadFromXml(xml);
             return p;
         }

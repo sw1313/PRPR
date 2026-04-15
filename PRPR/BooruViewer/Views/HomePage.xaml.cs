@@ -272,9 +272,44 @@ namespace PRPR.BooruViewer.Views
             Flyout.ShowAttachedFlyout(FilterButton);
         }
 
+        private string ExtractSearchText(string displayText)
+        {
+            if (string.IsNullOrWhiteSpace(displayText)) return displayText;
+            var parts = displayText.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var sb = new System.Text.StringBuilder();
+            foreach (var part in parts)
+            {
+                if (sb.Length > 0) sb.Append(' ');
+                int open = part.LastIndexOf('(');
+                int close = part.LastIndexOf(')');
+                if (open >= 0 && close > open)
+                    sb.Append(part.Substring(open + 1, close - open - 1));
+                else
+                    sb.Append(part);
+            }
+            return sb.ToString();
+        }
+
+        private async void SearchBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is TagDetailInMiddle chosen)
+            {
+                sender.Text = chosen.ToString();
+                await HomeViewModel.SearchAsync(chosen.ToSearchString().Trim());
+            }
+        }
+
         private async void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
         {
-            await HomeViewModel.SearchAsync(SearchBox.Text);
+            if (args.ChosenSuggestion is TagDetailInMiddle chosen)
+            {
+                SearchBox.Text = chosen.ToString();
+                await HomeViewModel.SearchAsync(chosen.ToSearchString().Trim());
+            }
+            else
+            {
+                await HomeViewModel.SearchAsync(ExtractSearchText(SearchBox.Text));
+            }
         }
 
         private void SearchBox_Loaded(object sender, RoutedEventArgs e)
@@ -307,6 +342,15 @@ namespace PRPR.BooruViewer.Views
             textbox.SelectionChanged -= Textbox_SelectionChanged;
         }
 
+        private static string ExtractTagName(string token)
+        {
+            int open = token.LastIndexOf('(');
+            int close = token.LastIndexOf(')');
+            if (open >= 0 && close > open)
+                return token.Substring(open + 1, close - open - 1);
+            return token;
+        }
+
         private void UpdateSuggestions(AutoSuggestBox sender)
         {
             try
@@ -317,26 +361,43 @@ namespace PRPR.BooruViewer.Views
                 int selectedKeyIndex = sender.Text.Take(pointer).Count(o => o == ' ');
 
                 var tags = sender.Text.Split(' ');
+                if (selectedKeyIndex >= tags.Length) selectedKeyIndex = tags.Length - 1;
                 if (tags.Length >= 1 && tags[selectedKeyIndex] != "")
                 {
-                    var results = TagDataBase.Search(tags[selectedKeyIndex]);
+                    var rawToken = tags[selectedKeyIndex];
+                    var keyword = ExtractTagName(rawToken);
 
-                    // Add back the other tags to the string
+                    var results = TagDataBase.Search(keyword).Take(20).ToList();
+
+                    var transRepo = TagTranslationRepository.Instance;
+                    foreach (var tag in results)
+                    {
+                        var trans = transRepo.Lookup(tag.Name);
+                        if (trans != null && !string.IsNullOrEmpty(trans.ZhName))
+                            tag.ZhName = trans.ZhName;
+                    }
+
+                    var transResults = transRepo.Search(rawToken, 20);
+                    var existingNames = new HashSet<string>(results.Select(r => r.Name));
+                    foreach (var te in transResults)
+                    {
+                        if (existingNames.Contains(te.Name)) continue;
+                        TagDetail td;
+                        if (!TagDataBase.AllTags.TryGetValue(te.Name, out td))
+                            td = new TagDetail { Name = te.Name, Type = (TagType)te.Type };
+                        td.ZhName = te.ZhName;
+                        results.Add(td);
+                        if (results.Count >= 20) break;
+                    }
+
                     var prefix = String.Join(" ", tags.Take(selectedKeyIndex));
                     if (!String.IsNullOrWhiteSpace(prefix))
-                    {
                         prefix += " ";
-                    }
                     var suffix = String.Join(" ", tags.Skip(selectedKeyIndex + 1));
                     if (!String.IsNullOrWhiteSpace(suffix))
-                    {
                         suffix = " " + suffix;
-                    }
 
-                    // Also add an extra space at the end so that it's easier to start typing the next new tag
                     var results2 = results.Select(o => new TagDetailInMiddle(o, prefix, suffix + " "));
-
-                    // Display the tag search results
                     sender.ItemsSource = results2;
                 }
                 else
@@ -439,6 +500,73 @@ namespace PRPR.BooruViewer.Views
         {
             Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterMainFlyout"] as Flyout);
             Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void BlacklistTagBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
+            UpdateBlacklistSuggestions(sender);
+        }
+
+        private void BlacklistTagBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is TagDetailInMiddle chosen)
+                sender.Text = chosen.ToSearchString().Trim();
+        }
+
+        private void UpdateBlacklistSuggestions(AutoSuggestBox sender)
+        {
+            try
+            {
+                var text = sender.Text ?? "";
+                var grid = VisualTreeHelper.GetChild(sender, 0) as Grid;
+                var textbox = grid?.Children.FirstOrDefault() as TextBox;
+                int pointer = textbox?.SelectionStart ?? text.Length;
+
+                var tags = text.Split(' ');
+                int selectedKeyIndex = text.Take(pointer).Count(c => c == ' ');
+                if (selectedKeyIndex >= tags.Length) selectedKeyIndex = tags.Length - 1;
+
+                if (tags.Length < 1 || string.IsNullOrEmpty(tags[selectedKeyIndex]))
+                {
+                    sender.ItemsSource = null;
+                    return;
+                }
+
+                var keyword = tags[selectedKeyIndex];
+                var results = TagDataBase.Search(keyword).Take(20).ToList();
+                var transRepo = TagTranslationRepository.Instance;
+                foreach (var tag in results)
+                {
+                    var trans = transRepo.Lookup(tag.Name);
+                    if (trans != null && !string.IsNullOrEmpty(trans.ZhName))
+                        tag.ZhName = trans.ZhName;
+                }
+
+                var transResults = transRepo.Search(keyword, 20);
+                var existingNames = new HashSet<string>(results.Select(r => r.Name));
+                foreach (var te in transResults)
+                {
+                    if (existingNames.Contains(te.Name)) continue;
+                    TagDetail td;
+                    if (!TagDataBase.AllTags.TryGetValue(te.Name, out td))
+                        td = new TagDetail { Name = te.Name, Type = (TagType)te.Type };
+                    td.ZhName = te.ZhName;
+                    results.Add(td);
+                    if (results.Count >= 20) break;
+                }
+
+                var prefix = string.Join(" ", tags.Take(selectedKeyIndex));
+                if (!string.IsNullOrWhiteSpace(prefix)) prefix += " ";
+                var suffix = string.Join(" ", tags.Skip(selectedKeyIndex + 1));
+                if (!string.IsNullOrWhiteSpace(suffix)) suffix = " " + suffix;
+
+                sender.ItemsSource = results.Select(o => new TagDetailInMiddle(o, prefix, suffix + " "));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"UpdateBlacklistSuggestions Exception: {ex.Message}");
+            }
         }
 
         private async Task PerformSearchAsync()
