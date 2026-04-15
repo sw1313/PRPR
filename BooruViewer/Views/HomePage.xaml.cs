@@ -1,0 +1,581 @@
+using Microsoft.Graphics.Canvas.Effects;
+using PRPR.Common;
+using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models.Global;
+using PRPR.BooruViewer.Services;
+using PRPR.BooruViewer.ViewModels;
+using PRPR.BooruViewer.Controls;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Numerics;
+using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
+using Windows.Foundation;
+using Windows.Foundation.Collections;
+using Windows.Graphics.Effects;
+using Windows.UI.Composition;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Controls.Primitives;
+using Windows.UI.Xaml.Data;
+using Windows.UI.Xaml.Input;
+using Windows.UI.Xaml.Media;
+using Windows.UI.Xaml.Navigation;
+using System.Collections.ObjectModel;
+using Windows.ApplicationModel;
+using PRPR.Common.Models;
+using System.Collections;
+using PRPR.Common.Services;
+using Windows.UI.Xaml.Media.Animation;
+using Windows.ApplicationModel.Resources;
+using Microsoft.QueryStringDotNET;
+using PRPR.Common.Controls;
+using Windows.Foundation.Metadata;
+
+// The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
+
+namespace PRPR.BooruViewer.Views
+{
+    /// <summary>
+    /// An empty page that can be used on its own or navigated to within a Frame.
+    /// </summary>
+    public sealed partial class HomePage : Page
+    {
+        public HomePage()
+        {
+            this.InitializeComponent();
+            this.navigationHelper = new NavigationHelper(this);
+            this.navigationHelper.LoadState += this.NavigationHelper_LoadState;
+            this.navigationHelper.SaveState += this.NavigationHelper_SaveState;
+
+            // 确保 IsRatingFilterUnlocked 为 true
+            YandeSettings.Current.IsRatingFilterUnlocked = true;
+        }
+
+        #region NavigationHelper
+
+        private NavigationHelper navigationHelper;
+        public NavigationHelper NavigationHelper
+        {
+            get { return this.navigationHelper; }
+        }
+
+        protected override async void OnNavigatedTo(NavigationEventArgs e)
+        {
+            this.navigationHelper.OnNavigatedTo(e);
+        }
+
+        protected override void OnNavigatedFrom(NavigationEventArgs e)
+        {
+            this.navigationHelper.OnNavigatedFrom(e);
+        }
+
+        #endregion
+
+        public HomeViewModel HomeViewModel
+        {
+            get
+            {
+                return this.DataContext as HomeViewModel;
+            }
+        }
+
+        private async void NavigationHelper_LoadState(object sender, LoadStateEventArgs e)
+        {
+            bool ResumingExistingPage = e.PageState != null && e.PageState.ContainsKey("Tags");
+
+            if (ResumingExistingPage)
+            {
+                // Re-search the tags if needed
+                if (SearchBox.Text != e.PageState["Tags"] as string)
+                {
+                    SearchBox.Text = e.PageState["Tags"] as string;
+
+                    await HomeViewModel.SearchAsync(SearchBox.Text);
+                }
+            }
+            else // Newly entered a page
+            {
+                if (e.NavigationParameter != null && !String.IsNullOrEmpty(e.NavigationParameter as string))
+                {
+                    // Turn to the searching selection
+                    MainPivot.UpdateLayout();
+                    this.HomeViewModel.SelectedViewIndex = 1;
+                }
+
+                var searchString = (e.NavigationParameter as string);
+                SearchBox.Text = searchString == null ? "" : searchString;
+
+                await HomeViewModel.SearchAsync(SearchBox.Text);
+            }
+        }
+
+        private void NavigationHelper_SaveState(object sender, SaveStateEventArgs e)
+        {
+            e.PageState["Tags"] = SearchBox.Text;
+            e.PageState["Tab"] = MainPivot.SelectedIndex;
+        }
+
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var frameState = SuspensionManager.SessionStateForFrame(this.Frame);
+
+                if (this.Frame.CanGoForward && frameState.ContainsKey("Page-" + (this.Frame.BackStackDepth + 1)))
+                {
+                    // Jump to the pivot where user left
+                    if (frameState.ContainsKey("Page-" + (this.Frame.BackStackDepth)))
+                    {
+                        var thisPageParameters = frameState["Page-" + (this.Frame.BackStackDepth)] as IDictionary<string, object>;
+                        if (thisPageParameters.ContainsKey("Tab") && MainPivot.SelectedIndex != (int)(thisPageParameters["Tab"]))
+                        {
+                            // Work around to disable the pivot turning animation by changing the index twice                            
+                            MainPivot.SelectedIndex = (MainPivot.SelectedIndex + 2) % 4;
+                            MainPivot.SelectedIndex = (MainPivot.SelectedIndex + 1) % 4;
+                            MainPivot.SelectedIndex = (int)(thisPageParameters["Tab"]);
+                        }
+                    }
+
+                    // Jump to the page item if this is a back button action
+                    var lastPageParameters = frameState["Page-" + (this.Frame.BackStackDepth + 1)] as IDictionary<string, object>;
+                    if (lastPageParameters.ContainsKey("Index") && lastPageParameters.ContainsKey("PostId"))
+                    {
+                        var index = (int)lastPageParameters["Index"];
+                        var postId = (int)lastPageParameters["PostId"];
+
+                        if (this.HomeViewModel.SelectedViewIndex == 0)
+                        {
+                            // Pre-fall creator has different image loading order
+                            // unable to share same connected animation code without breaking the UI
+                            if (ApiInformation.IsApiContractPresent("Windows.Foundation.UniversalApiContract", 5))
+                            {
+                                var post = FeatureView.FeatureViewModel.TopToday.FirstOrDefault(o => o.Id == postId);
+                                if (post != null && FeatureView.FeatureViewModel.TopToday.IndexOf(post) != -1)
+                                {
+                                    // Start the animation
+                                    ConnectedAnimation animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("PreviewImage");
+                                    if (animation != null)
+                                    {
+                                        FeatureView.UpdateLayout();
+                                        var button = this.FeatureView.GetTopTodayButton(FeatureView.FeatureViewModel.TopToday.IndexOf(post)) as Button;
+                                        var image = ((UIElement)((Border)button.Content).Child) as ImageCropper;
+                                        animation.TryStart(image.ImageInside);
+                                    }
+                                }
+                            }
+                        }
+                        else if (this.HomeViewModel.SelectedViewIndex == 1 || this.HomeViewModel.SelectedViewIndex == 2)
+                        {
+                            JustifiedWrapPanel panel = null;
+                            if (this.HomeViewModel.SelectedViewIndex == 1)
+                            {
+                                // Navigating back from a search result image
+                                panel = BrowsePanel;
+                            }
+                            else if (this.HomeViewModel.SelectedViewIndex == 2)
+                            {
+                                // Navigating back from a favorite image
+                                panel = FavoritePanel;
+                            }
+
+                            var panelItems = panel.ItemsSource as IList;
+                            if (panelItems != null && index >= 0 && index < panelItems.Count)
+                            {
+                                // Scroll into the index of last opened page
+                                panel.ScrollIntoView(panelItems[index], ScrollIntoViewAlignment.Default);
+                                panel.UpdateLayout();
+                            }
+
+                            // Pre-fall creator has different image loading order
+                            // unable to share same connected animation code without breaking the UI
+                            if (ApiInformation.IsApiContractPresent("Windows.Foundation.UniversalApiContract", 5))
+                            {
+                                // Start the animation
+                                ConnectedAnimation animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("PreviewImage");
+                                if (animation != null)
+                                {
+                                    if (panelItems != null && index >= 0 && index < panelItems.Count &&
+                                        panel.ContainerFromIndex(index) is ContentControl container)
+                                    {
+                                        var root = (FrameworkElement)container.ContentTemplateRoot;
+                                        var image = (UIElement)root.FindName("PreviewImage");
+                                        animation.TryStart(image);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // 这里可以添加日志记录或其他处理逻辑
+                Debug.WriteLine($"Page_Loaded Exception: {ex.Message}");
+            }
+        }
+
+        private void FilterButton_Click(object sender, RoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterMainFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void MenuFlyoutSubItem_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterRatingFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void FilterReturnItem_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterMainFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void FilterHiddenPostsListViewItem_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterHiddenFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void FilterBlacklistListViewItem_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterBlacklistFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private async void FavoriteRefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            await HomeViewModel.UpdateFavoriteListAsync();
+        }
+
+        private async void AppBarButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await FeatureView.FeatureViewModel.Update();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"AppBarButton_Click Exception: {ex.Message}");
+            }
+        }
+
+        private void ListViewItem_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterRatioFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private string ExtractSearchText(string displayText)
+        {
+            if (string.IsNullOrWhiteSpace(displayText)) return displayText;
+            var parts = displayText.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var sb = new System.Text.StringBuilder();
+            foreach (var part in parts)
+            {
+                if (sb.Length > 0) sb.Append(' ');
+                int open = part.LastIndexOf('(');
+                int close = part.LastIndexOf(')');
+                if (open >= 0 && close > open)
+                    sb.Append(part.Substring(open + 1, close - open - 1));
+                else
+                    sb.Append(part);
+            }
+            return sb.ToString();
+        }
+
+        private async void SearchBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is TagDetailInMiddle chosen)
+            {
+                sender.Text = chosen.ToString();
+                await HomeViewModel.SearchAsync(chosen.ToSearchString().Trim());
+            }
+        }
+
+        private async void SearchBox_QuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        {
+            if (args.ChosenSuggestion is TagDetailInMiddle chosen)
+            {
+                SearchBox.Text = chosen.ToString();
+                await HomeViewModel.SearchAsync(chosen.ToSearchString().Trim());
+            }
+            else
+            {
+                await HomeViewModel.SearchAsync(ExtractSearchText(SearchBox.Text));
+            }
+        }
+
+        private void SearchBox_Loaded(object sender, RoutedEventArgs e)
+        {
+            var grid = VisualTreeHelper.GetChild(sender as AutoSuggestBox, 0) as Grid;
+            var textbox = grid.Children.First() as TextBox;
+            textbox.SelectionChanged += Textbox_SelectionChanged;
+        }
+
+        private int lastSelectionStart = 0;
+
+        private void Textbox_SelectionChanged(object sender, RoutedEventArgs e)
+        {
+            // Re-search suggestions if the user moves the cursor position to another word
+            // Except the cursor is at the end, because it is probably caused by a SuggestionChosen event
+            var newSelectionStart = (sender as TextBox).SelectionStart;
+            int newSelectedKeyIndex = (sender as TextBox).Text.Take(newSelectionStart).Count(o => o == ' ');
+            int lastSelectedKeyIndex = (sender as TextBox).Text.Take(lastSelectionStart).Count(o => o == ' ');
+            if (lastSelectedKeyIndex != newSelectedKeyIndex && newSelectionStart != (sender as TextBox).Text.Length)
+            {
+                UpdateSuggestions(SearchBox);
+            }
+            lastSelectionStart = newSelectionStart;
+        }
+
+        private void SearchBox_Unloaded(object sender, RoutedEventArgs e)
+        {
+            var grid = VisualTreeHelper.GetChild(sender as AutoSuggestBox, 0) as Grid;
+            var textbox = grid.Children.First() as TextBox;
+            textbox.SelectionChanged -= Textbox_SelectionChanged;
+        }
+
+        private static string ExtractTagName(string token)
+        {
+            int open = token.LastIndexOf('(');
+            int close = token.LastIndexOf(')');
+            if (open >= 0 && close > open)
+                return token.Substring(open + 1, close - open - 1);
+            return token;
+        }
+
+        private void UpdateSuggestions(AutoSuggestBox sender)
+        {
+            try
+            {
+                var grid = VisualTreeHelper.GetChild(sender, 0) as Grid;
+                var textbox = grid.Children.First() as TextBox;
+                var pointer = textbox.SelectionStart;
+                int selectedKeyIndex = sender.Text.Take(pointer).Count(o => o == ' ');
+
+                var tags = sender.Text.Split(' ');
+                if (selectedKeyIndex >= tags.Length) selectedKeyIndex = tags.Length - 1;
+                if (tags.Length >= 1 && tags[selectedKeyIndex] != "")
+                {
+                    var rawToken = tags[selectedKeyIndex];
+                    var keyword = ExtractTagName(rawToken);
+
+                    var results = TagDataBase.Search(keyword).Take(20).ToList();
+
+                    var transRepo = TagTranslationRepository.Instance;
+                    foreach (var tag in results)
+                    {
+                        var trans = transRepo.Lookup(tag.Name);
+                        if (trans != null && !string.IsNullOrEmpty(trans.ZhName))
+                            tag.ZhName = trans.ZhName;
+                    }
+
+                    var transResults = transRepo.Search(rawToken, 20);
+                    var existingNames = new HashSet<string>(results.Select(r => r.Name));
+                    foreach (var te in transResults)
+                    {
+                        if (existingNames.Contains(te.Name)) continue;
+                        TagDetail td;
+                        if (!TagDataBase.AllTags.TryGetValue(te.Name, out td))
+                            td = new TagDetail { Name = te.Name, Type = (TagType)te.Type };
+                        td.ZhName = te.ZhName;
+                        results.Add(td);
+                        if (results.Count >= 20) break;
+                    }
+
+                    var prefix = String.Join(" ", tags.Take(selectedKeyIndex));
+                    if (!String.IsNullOrWhiteSpace(prefix))
+                        prefix += " ";
+                    var suffix = String.Join(" ", tags.Skip(selectedKeyIndex + 1));
+                    if (!String.IsNullOrWhiteSpace(suffix))
+                        suffix = " " + suffix;
+
+                    var results2 = results.Select(o => new TagDetailInMiddle(o, prefix, suffix + " "));
+                    sender.ItemsSource = results2;
+                }
+                else
+                {
+                    sender.ItemsSource = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"UpdateSuggestions Exception: {ex.Message}");
+            }
+        }
+
+        private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            {
+                if (args.CheckCurrent())
+                {
+                    UpdateSuggestions(sender);
+                }
+            }
+        }
+
+        private void Image_ImageOpened(object sender, RoutedEventArgs e)
+        {
+            var i = sender as Image;
+
+            var b = i.Parent as Border;
+            if (b == null)
+            {
+                i.Opacity = 1;
+                return;
+            }
+
+            var g = b.Parent as Grid;
+            if (g == null)
+            {
+                i.Opacity = 1;
+                return;
+            }
+
+            var c = g.Parent as UserControl;
+            if (c == null)
+            {
+                i.Opacity = 1;
+                return;
+            }
+
+            VisualStateManager.GoToState(c, "ImageLoaded", true);
+        }
+
+        private async void ComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            await HomeViewModel.UpdateFavoriteListAsync();
+        }
+
+        private void BrowsePanel_ItemClick(object sender, JustifiedWrapPanel.ItemClickEventArgs e)
+        {
+            // Clicked a list item from the image wall
+
+            var panel = (sender as JustifiedWrapPanel);
+            var container = panel.ContainerFromItem(e.ClickedItem);
+            if (container != null)
+            {
+                var root = (container as ContentControl).ContentTemplateRoot;
+                var image = (UIElement)(root as FrameworkElement).FindName("PreviewImage");
+
+                // Pre-fall creator has different image loading order
+                // unable to share same connected animation code without breaking the UI
+                if (ApiInformation.IsApiContractPresent("Windows.Foundation.UniversalApiContract", 5))
+                {
+                    ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("PreviewImage", image);
+                }
+            }
+
+            var post = e.ClickedItem as Post;
+
+            // Navigate to image page
+            ImagePage.PostDataStack.Push(panel.ItemsSource as ObservableCollection<Post>);
+            this.Frame.Navigate(typeof(ImagePage), post.ToXml(), new SuppressNavigationTransitionInfo());
+        }
+
+        private void MainPivot_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 根据需要处理 Pivot 选择变化事件
+        }
+
+        private void MainPivot_Loaded(object sender, RoutedEventArgs e)
+        {
+            // 根据需要处理 Pivot 加载事件
+        }
+
+        private async void SearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            await PerformSearchAsync();
+        }
+
+        private async void OpenFilterFlyout_Click(object sender, RoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterMainFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void BlacklistTagBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
+        {
+            if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
+            UpdateBlacklistSuggestions(sender);
+        }
+
+        private void BlacklistTagBox_SuggestionChosen(AutoSuggestBox sender, AutoSuggestBoxSuggestionChosenEventArgs args)
+        {
+            if (args.SelectedItem is TagDetailInMiddle chosen)
+                sender.Text = chosen.ToSearchString().Trim();
+        }
+
+        private void UpdateBlacklistSuggestions(AutoSuggestBox sender)
+        {
+            try
+            {
+                var text = sender.Text ?? "";
+                var grid = VisualTreeHelper.GetChild(sender, 0) as Grid;
+                var textbox = grid?.Children.FirstOrDefault() as TextBox;
+                int pointer = textbox?.SelectionStart ?? text.Length;
+
+                var tags = text.Split(' ');
+                int selectedKeyIndex = text.Take(pointer).Count(c => c == ' ');
+                if (selectedKeyIndex >= tags.Length) selectedKeyIndex = tags.Length - 1;
+
+                if (tags.Length < 1 || string.IsNullOrEmpty(tags[selectedKeyIndex]))
+                {
+                    sender.ItemsSource = null;
+                    return;
+                }
+
+                var keyword = tags[selectedKeyIndex];
+                var results = TagDataBase.Search(keyword).Take(20).ToList();
+                var transRepo = TagTranslationRepository.Instance;
+                foreach (var tag in results)
+                {
+                    var trans = transRepo.Lookup(tag.Name);
+                    if (trans != null && !string.IsNullOrEmpty(trans.ZhName))
+                        tag.ZhName = trans.ZhName;
+                }
+
+                var transResults = transRepo.Search(keyword, 20);
+                var existingNames = new HashSet<string>(results.Select(r => r.Name));
+                foreach (var te in transResults)
+                {
+                    if (existingNames.Contains(te.Name)) continue;
+                    TagDetail td;
+                    if (!TagDataBase.AllTags.TryGetValue(te.Name, out td))
+                        td = new TagDetail { Name = te.Name, Type = (TagType)te.Type };
+                    td.ZhName = te.ZhName;
+                    results.Add(td);
+                    if (results.Count >= 20) break;
+                }
+
+                var prefix = string.Join(" ", tags.Take(selectedKeyIndex));
+                if (!string.IsNullOrWhiteSpace(prefix)) prefix += " ";
+                var suffix = string.Join(" ", tags.Skip(selectedKeyIndex + 1));
+                if (!string.IsNullOrWhiteSpace(suffix)) suffix = " " + suffix;
+
+                sender.ItemsSource = results.Select(o => new TagDetailInMiddle(o, prefix, suffix + " "));
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"UpdateBlacklistSuggestions Exception: {ex.Message}");
+            }
+        }
+
+        private async Task PerformSearchAsync()
+        {
+            string keyword = SearchBox.Text;
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                await HomeViewModel.SearchAsync(keyword);
+            }
+        }
+    }
+}
