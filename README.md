@@ -14,7 +14,7 @@
 该应用目前已被微软商店下架。
 
 离线包发布：
-[sw1313/PRPR](https://github.com/sw1313/PRPR/releases/tag/2.7.4.0)
+[sw1313/PRPR](https://github.com/sw1313/PRPR/releases)
 
 ## 项目结构
 
