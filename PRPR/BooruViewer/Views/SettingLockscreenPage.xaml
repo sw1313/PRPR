@@ -122,8 +122,7 @@
                     </Grid>
                 </ListViewItem>
                 <RadioButton Content="按时间" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" GroupName="LsSort"/>
-                <RadioButton Content="按热度" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="LsSort"/>
-                <RadioButton Content="按收藏" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}" GroupName="LsSort"/>
+                <RadioButton Content="按评分" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="LsSort"/>
             </StackPanel>
         </Flyout>
 

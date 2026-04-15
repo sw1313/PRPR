@@ -260,8 +260,7 @@
 
                 <TextBlock Text="排序" FontWeight="SemiBold" Margin="0,15,0,5"/>
                 <RadioButton Content="按时间" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" GroupName="Sort" Margin="0,0,0,-5"/>
-                <RadioButton Content="按热度" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="Sort" Margin="0,0,0,-5"/>
-                <RadioButton Content="按收藏" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}" GroupName="Sort" Margin="0,0,0,-5"/>
+                <RadioButton Content="按评分" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="Sort" Margin="0,0,0,-5"/>
 
                 <TextBlock Text="时间范围" FontWeight="SemiBold" Margin="0,10,0,5"/>
                 <RadioButton Content="不限" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" GroupName="Time" Margin="0,0,0,-5"/>
