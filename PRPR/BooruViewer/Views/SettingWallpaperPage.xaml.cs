@@ -97,7 +97,9 @@ namespace PRPR.BooruViewer.Views
         private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
             // Check the best time span to the users
-            var p = await Posts.DownloadPostsAsync(1, $"{YandeClient.HOST}/post.xml?tags={ WebUtility.UrlEncode(YandeSettings.Current.WallpaperUpdateTaskSearchKey) }");
+            var wpMetaTags = YandeSettings.Current.WallpaperPostFilter.BuildMetaTags();
+            var wpFullQuery = string.IsNullOrWhiteSpace(wpMetaTags) ? YandeSettings.Current.WallpaperUpdateTaskSearchKey : (YandeSettings.Current.WallpaperUpdateTaskSearchKey + " " + wpMetaTags);
+            var p = await Posts.DownloadPostsAsync(1, $"{YandeClient.HOST}/post.xml?tags={ WebUtility.UrlEncode(wpFullQuery) }");
 
             while (p.Count < 50 && p.HasMoreItems)
             {
@@ -203,6 +205,18 @@ $"You have 90% chance to get a new image for {Search(0.90, timeSpans)} minutes.\
         private void FilterBlacklistListViewItem_Tapped(object sender, TappedRoutedEventArgs e)
         {
             Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterBlacklistFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void FilterSortListViewItem_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterSortFlyout"] as Flyout);
+            Flyout.ShowAttachedFlyout(FilterButton);
+        }
+
+        private void FilterTimeListViewItem_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            Flyout.SetAttachedFlyout(FilterButton, this.Resources["FilterTimeFlyout"] as Flyout);
             Flyout.ShowAttachedFlyout(FilterButton);
         }
 

@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Services;
+using PRPR.BooruViewer.Services;
 using PRPR.Common;
 using System;
 using System.Collections.Generic;
@@ -136,6 +136,54 @@ namespace PRPR.BooruViewer.Models
         // 保留方向相关的解锁属性
         public bool IsFilterHorizontalUnlocked => !IsFilterHorizontal || IsFilterVertical;
         public bool IsFilterVerticalUnlocked => IsFilterHorizontal || !IsFilterVertical;
+
+        // 排序：0=按时间, 1=按热度, 2=按收藏
+        private int _sortOrder = 0;
+        public int SortOrder
+        {
+            get => _sortOrder;
+            set
+            {
+                if (_sortOrder != value)
+                {
+                    _sortOrder = value;
+                    NotifyPropertyChanged(nameof(SortOrder));
+                }
+            }
+        }
+
+        // 时间范围：0=不限, 1=今天, 2=本周(7天), 3=本月(30天), 4=今年(365天)
+        private int _timeRange = 0;
+        public int TimeRange
+        {
+            get => _timeRange;
+            set
+            {
+                if (_timeRange != value)
+                {
+                    _timeRange = value;
+                    NotifyPropertyChanged(nameof(TimeRange));
+                }
+            }
+        }
+
+        public string BuildMetaTags()
+        {
+            var parts = new List<string>();
+            switch (SortOrder)
+            {
+                case 1: parts.Add("order:score"); break;
+                case 2: parts.Add("order:favcount"); break;
+            }
+            switch (TimeRange)
+            {
+                case 1: parts.Add($"date:>={DateTime.UtcNow:yyyy-MM-dd}"); break;
+                case 2: parts.Add($"date:>={DateTime.UtcNow.AddDays(-7):yyyy-MM-dd}"); break;
+                case 3: parts.Add($"date:>={DateTime.UtcNow.AddDays(-30):yyyy-MM-dd}"); break;
+                case 4: parts.Add($"date:>={DateTime.UtcNow.AddDays(-365):yyyy-MM-dd}"); break;
+            }
+            return string.Join(" ", parts);
+        }
 
         // 标签黑名单
         private string _tagBlacklist = String.Join(" ", new List<string> { "bikini", "buruma", "ass", "pantsu", "bra", "torn_clothes", "no_pan" });
