@@ -1011,6 +1011,59 @@ namespace PRPR.BooruViewer.Models.Global
             }
         }
 
+        #region Network settings
+
+        public bool UseBuiltInHosts
+        {
+            get
+            {
+                return GetValueOrDefault<bool>(GetCallerName(), false, false);
+            }
+            set
+            {
+                AddOrUpdateValue(GetCallerName(), value, false);
+            }
+        }
+
+        #endregion
+
+        #region Tag translation settings
+
+        public bool AutoSyncTags
+        {
+            get
+            {
+                return GetValueOrDefault<bool>(GetCallerName(), false, false);
+            }
+            set
+            {
+                AddOrUpdateValue(GetCallerName(), value, false);
+            }
+        }
+
+        public string GitHubPat
+        {
+            get
+            {
+                return GetValueOrDefault<string>(GetCallerName(), "", false);
+            }
+            set
+            {
+                AddOrUpdateValue(GetCallerName(), value, false);
+                NotifyPropertyChanged(nameof(HasGitHubPat));
+            }
+        }
+
+        public bool HasGitHubPat
+        {
+            get
+            {
+                return !string.IsNullOrWhiteSpace(GitHubPat);
+            }
+        }
+
+        #endregion
+
         #region other settings
 
         public string DefaultDownloadPath

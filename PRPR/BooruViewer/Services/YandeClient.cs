@@ -49,6 +49,108 @@ namespace PRPR.BooruViewer.Services
             }
         }
 
+        private static readonly System.Collections.Generic.Dictionary<string, string> BuiltInHosts =
+            new System.Collections.Generic.Dictionary<string, string>
+            {
+                { "yande.re", "198.251.89.183" },
+                { "files.yande.re", "198.251.89.183" },
+                { "assets.yande.re", "198.251.89.183" },
+            };
+
+        public static Uri RewriteUri(Uri original)
+        {
+            try
+            {
+                if (!YandeSettings.Current.UseBuiltInHosts) return original;
+            }
+            catch { return original; }
+
+            if (BuiltInHosts.TryGetValue(original.Host, out var ip))
+            {
+                var builder = new UriBuilder(original) { Host = ip };
+                return builder.Uri;
+            }
+            return original;
+        }
+
+        public static string RewriteUrl(string url)
+        {
+            try
+            {
+                if (!YandeSettings.Current.UseBuiltInHosts) return url;
+                var uri = new Uri(url);
+                if (BuiltInHosts.TryGetValue(uri.Host, out var ip))
+                {
+                    var builder = new UriBuilder(uri) { Host = ip };
+                    return builder.Uri.ToString();
+                }
+            }
+            catch { }
+            return url;
+        }
+
+        public static void ApplyHostHeader(HttpRequestMessage message, Uri originalUri)
+        {
+            try
+            {
+                if (YandeSettings.Current.UseBuiltInHosts && BuiltInHosts.ContainsKey(originalUri.Host))
+                {
+                    message.Headers.Host = new Windows.Networking.HostName(originalUri.Host);
+                }
+            }
+            catch { }
+        }
+
+        public static async Task<Windows.Storage.Streams.IBuffer> GetBufferAsync(HttpClient httpClient, Uri originalUri)
+        {
+            var rewritten = RewriteUri(originalUri);
+            if (rewritten == originalUri)
+            {
+                return await httpClient.GetBufferAsync(originalUri);
+            }
+            var msg = new HttpRequestMessage(HttpMethod.Get, rewritten);
+            ApplyDefaultHeaders(msg);
+            ApplyHostHeader(msg, originalUri);
+            var resp = await httpClient.SendRequestAsync(msg);
+            resp.EnsureSuccessStatusCode();
+            return await resp.Content.ReadAsBufferAsync();
+        }
+
+        public static async Task<string> GetStringAsync(HttpClient httpClient, Uri originalUri)
+        {
+            var rewritten = RewriteUri(originalUri);
+            if (rewritten == originalUri)
+            {
+                return await httpClient.GetStringAsync(originalUri);
+            }
+            var msg = new HttpRequestMessage(HttpMethod.Get, rewritten);
+            ApplyDefaultHeaders(msg);
+            ApplyHostHeader(msg, originalUri);
+            var resp = await httpClient.SendRequestAsync(msg);
+            resp.EnsureSuccessStatusCode();
+            return await resp.Content.ReadAsStringAsync();
+        }
+
+        public static HttpClient CreateHttpClient()
+        {
+            try
+            {
+                if (YandeSettings.Current.UseBuiltInHosts)
+                {
+                    var filter = new HttpBaseProtocolFilter();
+                    filter.IgnorableServerCertificateErrors.Add(
+                        Windows.Security.Cryptography.Certificates.ChainValidationResult.InvalidName);
+                    var client = new HttpClient(filter);
+                    ApplyDefaultHeaders(client);
+                    return client;
+                }
+            }
+            catch { }
+            var defaultClient = new HttpClient();
+            ApplyDefaultHeaders(defaultClient);
+            return defaultClient;
+        }
+
         public static void ApplyDefaultHeaders(HttpClient httpClient)
         {
             httpClient.DefaultRequestHeaders.Add("User-Agent", DEFAULT_USER_AGENT);
@@ -73,10 +175,10 @@ namespace PRPR.BooruViewer.Services
             try
             {
                 // Log out
-                using (var logoutClient = new HttpClient(new HttpBaseProtocolFilter()))
+                using (var logoutClient = CreateHttpClient())
                 {
-                    ApplyDefaultHeaders(logoutClient);
-                    using (var logoutResponse = await logoutClient.GetAsync(new Uri($"{YandeClient.HOST}/user/logout")))
+                    var logoutOriginalUri = new Uri($"{YandeClient.HOST}/user/logout");
+                    using (var logoutResponse = await logoutClient.GetAsync(RewriteUri(logoutOriginalUri)))
                     {
                         await logoutResponse.Content.ReadAsStringAsync();
                     }
@@ -87,9 +189,16 @@ namespace PRPR.BooruViewer.Services
                 filter.CacheControl.WriteBehavior = HttpCacheWriteBehavior.NoCache;
                 filter.CacheControl.ReadBehavior = HttpCacheReadBehavior.MostRecent;
                 filter.AllowUI = false;
+                try
+                {
+                    if (YandeSettings.Current.UseBuiltInHosts)
+                        filter.IgnorableServerCertificateErrors.Add(
+                            Windows.Security.Cryptography.Certificates.ChainValidationResult.InvalidName);
+                }
+                catch { }
                 var hc = new HttpClient(filter);
                 ApplyDefaultHeaders(hc);
-                var str = await hc.GetStringAsync(new Uri($"{YandeClient.HOST}/user/login"));
+                var str = await YandeClient.GetStringAsync(hc, new Uri($"{YandeClient.HOST}/user/login"));
 
                 
                 HtmlDocument htmlDocument = new HtmlDocument();
@@ -111,11 +220,13 @@ namespace PRPR.BooruViewer.Services
         {
             try
             {
-                Uri uri = new Uri($"{YandeClient.HOST}/post/vote.xml?login={userName}&password_hash={passwordHash}&id={postId}");
-                using (var httpClient = new HttpClient())
+                var originalUri = new Uri($"{YandeClient.HOST}/post/vote.xml?login={userName}&password_hash={passwordHash}&id={postId}");
+                using (var httpClient = CreateHttpClient())
                 {
-                    ApplyDefaultHeaders(httpClient);
-                    var response = await httpClient.PostAsync(uri, new HttpStringContent(""));
+                    var rewrittenUri = RewriteUri(originalUri);
+                    var msg = new HttpRequestMessage(HttpMethod.Post, rewrittenUri) { Content = new HttpStringContent("") };
+                    ApplyHostHeader(msg, originalUri);
+                    var response = await httpClient.SendRequestAsync(msg);
 
                     var str = await response.Content.ReadAsStringAsync();
                     return str.Contains("3") ? VoteType.Favorite : VoteType.None;
@@ -129,14 +240,15 @@ namespace PRPR.BooruViewer.Services
 
         public static async Task VoteAsync(int postId, string userName, string passwordHash, VoteType score)
         {
-            var uri = new Uri($"{YandeClient.HOST}/post/vote.xml?login={userName}&password_hash={passwordHash}&id={postId}&score={(int)score}");
-            using (var httpClient = new HttpClient())
+            var voteOriginalUri = new Uri($"{YandeClient.HOST}/post/vote.xml?login={userName}&password_hash={passwordHash}&id={postId}&score={(int)score}");
+            using (var httpClient = CreateHttpClient())
             {
-                var message = new HttpRequestMessage(HttpMethod.Post, uri)
+                var message = new HttpRequestMessage(HttpMethod.Post, RewriteUri(voteOriginalUri))
                 {
                     Content = new HttpStringContent("")
                 };
                 ApplyDefaultHeaders(message);
+                ApplyHostHeader(message, voteOriginalUri);
                 var response = await httpClient.SendRequestAsync(message);
                 var responseString = await response.Content.ReadAsStringAsync();
             }
@@ -175,12 +287,14 @@ namespace PRPR.BooruViewer.Services
                 string requestBody = $"authenticity_token={token}&url=&user%5Bname%5D={userName}&user%5Bpassword%5D={password}&commit=Login";
                 
                 
-                var httpClient = new HttpClient(new HttpBaseProtocolFilter());
-                var message = new HttpRequestMessage(new HttpMethod("POST"), new Uri($"{YandeClient.HOST}/user/authenticate"))
+                var httpClient = CreateHttpClient();
+                var authOriginalUri = new Uri($"{YandeClient.HOST}/user/authenticate");
+                var message = new HttpRequestMessage(new HttpMethod("POST"), RewriteUri(authOriginalUri))
                 {
                     Content = new HttpStringContent(requestBody)
                 };
                 ApplyDefaultHeaders(message);
+                ApplyHostHeader(message, authOriginalUri);
                 message.Content.Headers.ContentType = new HttpMediaTypeHeaderValue("application/x-www-form-urlencoded");
                 var response = await httpClient.SendRequestAsync(message);
                 var responseString = await response.Content.ReadAsStringAsync();

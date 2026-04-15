@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Services;
 using PRPR.Common;
@@ -30,9 +30,20 @@ namespace PRPR.BooruViewer.Views
     /// </summary>
     public sealed partial class SettingPage : Page
     {
+        private int _titleTapCount = 0;
+        private bool _patEnabled = false;
+        private DateTimeOffset _lastTapTime = DateTimeOffset.MinValue;
+
         public SettingPage()
         {
             this.InitializeComponent();
+            this.Loaded += SettingPage_Loaded;
+        }
+
+        private void SettingPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            _patEnabled = !string.IsNullOrWhiteSpace(YandeSettings.Current.GitHubPat);
+            UploadTagsButton.Visibility = _patEnabled ? Visibility.Visible : Visibility.Collapsed;
         }
 
         
@@ -83,22 +94,106 @@ namespace PRPR.BooruViewer.Views
 
         private static async Task ChangeHostAsync(string host, string passwordHashSalt)
         {
-
-            // Log out the user account from the current moebooru site
             YandeClient.SignOut();
 
-            // Clear all wallpaper/lockscreen records as they are only identified with postId
             using (var db = new AppDbContext())
             {
                 db.Database.ExecuteSqlCommand($"delete from {nameof(AppDbContext.WallpaperRecords)}; delete from {nameof(AppDbContext.LockScreenRecords)}");
             }
 
-            // Change the site settings
             YandeSettings.Current.Host = host;
             YandeSettings.Current.PasswordHashSalt = passwordHashSalt;
 
-            // Close the app
             AppRestartFailureReason result = await CoreApplication.RequestRestartAsync("");
+        }
+
+        private async void SyncTags_Click(object sender, RoutedEventArgs e)
+        {
+            SyncTagsButton.IsEnabled = false;
+            SyncStatusText.Text = "正在同步...";
+            try
+            {
+                var repo = TagTranslationRepository.Instance;
+                await repo.EnsureLoadedAsync();
+                var svc = new TagSyncService(repo);
+                var count = await svc.DownloadAsync();
+                SyncStatusText.Text = $"同步完成，共 {count} 条";
+            }
+            catch (Exception ex)
+            {
+                SyncStatusText.Text = $"同步失败: {ex.Message}";
+            }
+            finally
+            {
+                SyncTagsButton.IsEnabled = true;
+            }
+        }
+
+        private async void UploadTags_Click(object sender, RoutedEventArgs e)
+        {
+            UploadTagsButton.IsEnabled = false;
+            SyncStatusText.Text = "正在上传...";
+            try
+            {
+                var pat = YandeSettings.Current.GitHubPat;
+                var repo = TagTranslationRepository.Instance;
+                await repo.EnsureLoadedAsync();
+                var svc = new TagSyncService(repo);
+                var msg = await svc.UploadThenDownloadAsync(pat);
+                SyncStatusText.Text = msg;
+            }
+            catch (Exception ex)
+            {
+                SyncStatusText.Text = $"上传失败: {ex.Message}";
+            }
+            finally
+            {
+                UploadTagsButton.IsEnabled = true;
+            }
+        }
+
+        private async void HeaderPointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            e.Handled = true;
+            var now = DateTimeOffset.Now;
+            if ((now - _lastTapTime).TotalSeconds > 3)
+                _titleTapCount = 0;
+            _lastTapTime = now;
+
+            _titleTapCount++;
+            if (_titleTapCount >= 5)
+            {
+                _titleTapCount = 0;
+                if (_patEnabled)
+                {
+                    YandeSettings.Current.GitHubPat = "";
+                    _patEnabled = false;
+                    UploadTagsButton.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    await ShowPatDialogAsync();
+                }
+            }
+        }
+
+        private async Task ShowPatDialogAsync()
+        {
+            var inputBox = new TextBox { PlaceholderText = "GitHub Personal Access Token" };
+            var dialog = new ContentDialog
+            {
+                Title = "输入 PAT",
+                Content = inputBox,
+                PrimaryButtonText = "确定",
+                CloseButtonText = "取消",
+            };
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary && !string.IsNullOrWhiteSpace(inputBox.Text))
+            {
+                YandeSettings.Current.GitHubPat = inputBox.Text.Trim();
+                _patEnabled = true;
+                UploadTagsButton.Visibility = Visibility.Visible;
+            }
         }
     }
 }

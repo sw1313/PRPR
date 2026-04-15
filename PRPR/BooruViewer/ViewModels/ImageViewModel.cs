@@ -340,7 +340,8 @@ namespace PRPR.BooruViewer.ViewModels
             // Download the image
             if (file != null)
             {
-                var imageBuffer = await (new HttpClient()).GetBufferAsync(new Uri(fileUri));
+                var hcDownload = YandeClient.CreateHttpClient();
+                var imageBuffer = await YandeClient.GetBufferAsync(hcDownload, new Uri(fileUri));
 
                 CachedFileManager.DeferUpdates(file);
                 await FileIO.WriteBufferAsync(file, imageBuffer);
@@ -378,8 +379,8 @@ namespace PRPR.BooruViewer.ViewModels
             }
 
 
-            var hc = new HttpClient();
-            var imageBuffer = await hc.GetBufferAsync(new Uri(uriString));
+            var hc = YandeClient.CreateHttpClient();
+            var imageBuffer = await YandeClient.GetBufferAsync(hc, new Uri(uriString));
 
             await ClipboardService.CopyImageAsync(imageBuffer);
         }

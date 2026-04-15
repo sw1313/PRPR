@@ -331,15 +331,33 @@ namespace PRPR
             {
                 try
                 {
-
                     await TagDataBase.DownloadLatestTagDBAsync();
                 }
                 catch (Exception ex)
                 {
-
-                    //new MessageDialog(ex.Message).ShowAsync();
                 }
             }
+
+            // Load tag translations and auto-sync if enabled
+            try
+            {
+                var tagTransRepo = TagTranslationRepository.Instance;
+                await tagTransRepo.EnsureLoadedAsync();
+
+                if (BooruViewer.Models.Global.YandeSettings.Current.AutoSyncTags)
+                {
+                    var _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var svc = new TagSyncService(tagTransRepo);
+                            await svc.DownloadAsync();
+                        }
+                        catch { }
+                    });
+                }
+            }
+            catch { }
 
             // TODO: reenable after debug
             BackgroundAccessStatus status = await BackgroundExecutionManager.RequestAccessAsync();

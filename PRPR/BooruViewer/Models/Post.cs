@@ -64,6 +64,7 @@ frames_pending_string="" frames_string="" is_note_locked="false" last_noted_at="
             get
             {
                 var x = new ObservableCollection<TagDetail>();
+                var transRepo = TagTranslationRepository.Instance;
                 if (!String.IsNullOrEmpty(Tags))
                 {
                     var tagNames = Tags.Split(' ');
@@ -71,11 +72,17 @@ frames_pending_string="" frames_string="" is_note_locked="false" last_noted_at="
                     {
                         if (tagName != "")
                         {
-                            TagDetail tag = null;
-                            if (TagDataBase.AllTags.TryGetValue(tagName, out tag))
+                            TagDetail tag;
+                            if (!TagDataBase.AllTags.TryGetValue(tagName, out tag))
                             {
-                                x.Add(tag);
+                                tag = new TagDetail { Name = tagName, Type = TagType.None };
                             }
+
+                            var trans = transRepo.Lookup(tagName);
+                            if (trans != null && !string.IsNullOrEmpty(trans.ZhName))
+                                tag.ZhName = trans.ZhName;
+
+                            x.Add(tag);
                         }
                     }
                 }
