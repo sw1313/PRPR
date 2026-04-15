@@ -1,0 +1,633 @@
+<Page
+    x:Class="PRPR.BooruViewer.Views.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:PRPR.BooruViewer.Views"
+    xmlns:Control="using:PRPR.ExReader.Controls"
+    xmlns:CommonControl="using:PRPR.Common.Controls"
+    xmlns:Extensions="using:PRPR.Common.Extensions"
+    xmlns:Converters="using:PRPR.BooruViewer.Converters"
+    xmlns:controls="using:PRPR.BooruViewer.Controls"
+    xmlns:CommonConverters="using:PRPR.Common.Converters"
+    xmlns:m="using:PRPR.BooruViewer.Models"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:PRPR.BooruViewer.ViewModels"
+    xmlns:FCU="http://schemas.microsoft.com/winfx/2006/xaml/presentation?IsApiContractPresent(Windows.Foundation.UniversalApiContract,5)"
+    xmlns:CU="http://schemas.microsoft.com/winfx/2006/xaml/presentation?IsApiContractNotPresent(Windows.Foundation.UniversalApiContract,5)"
+    mc:Ignorable="d"
+    NavigationCacheMode="Required"
+    Loaded="Page_Loaded">
+
+    <Page.DataContext>
+        <vm:HomeViewModel/>
+    </Page.DataContext>
+
+    <Page.Resources>
+        <!-- 转换器 -->
+        <CommonConverters:RandomGrayConverter x:Key="RandomGrayConverter"/>
+        <Converters:TagTypeSymbolConverter x:Key="TagTypeSymbolConverter"/>
+        <Converters:TagTypeColorConverter x:Key="TagTypeColorConverter"/>
+
+        <!-- DataTemplate 使用 Post 类型 -->
+        <DataTemplate x:Key="PostTemplate" x:DataType="m:Post">
+            <StackPanel Margin="10">
+                <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Content}" TextWrapping="Wrap"/>
+                <!-- 添加更多绑定的属性 -->
+            </StackPanel>
+        </DataTemplate>
+
+        <!-- 已定义的 Flyouts -->
+        <Flyout Placement="Bottom" x:Key="FilterRatingFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding SearchPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatingItem" Margin="36,0,0,0" Text="評級" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingSafe" Content="Safe" IsChecked="{Binding IsFilterSafe, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsFilterSafeUnlocked}"/>
+
+                <!-- 直接设置 Visibility 为 Visible -->
+                <StackPanel Orientation="Vertical" Visibility="Visible">
+                    <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingQuestionable" Content="Questionable" IsChecked="{Binding IsFilterQuestionable, Mode=TwoWay}" 
+                              IsEnabled="{Binding IsFilterQuestionableUnlocked}"/>
+                    <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingExplicit" Content="Explicit" IsChecked="{Binding IsFilterExplicit, Mode=TwoWay}"
+                              IsEnabled="{Binding IsFilterExplicitUnlocked}"/>
+                </StackPanel>
+
+                <!-- 直接设置 Visibility 为 Visible -->
+                <TextBlock x:Uid="/BooruHomePage/TextBlockRating" TextWrapping="Wrap" Visibility="Visible"/>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterRatioFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding SearchPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Margin="36,0,0,0" Text="長闊比" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatioHorizontal" Content="Horizontal" IsChecked="{Binding IsFilterHorizontal, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsFilterHorizontalUnlocked}"/>
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatioVertical" Content="Vertical" IsChecked="{Binding IsFilterVertical, Mode=TwoWay}"
+                          IsEnabled="{Binding IsFilterVerticalUnlocked}"/>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockRatioSquare" Text="p.s. Square images are treated as horizontal." TextWrapping="Wrap"/>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterHiddenFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding SearchPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockAllowHiddenItem" Margin="36,0,0,0" Text="隱藏圖片" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <ToggleSwitch x:Uid="/BooruHomePage/ToggleSwitchAllowHidden" Header="顯示被隱藏的圖片" IsOn="{Binding IsFilterAllowHidden, Mode=TwoWay}"/>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockAllowHidden" Text="一般以文字為主的圖片都會被預設隱藏。" TextWrapping="Wrap"/>
+
+                <ToggleSwitch x:Uid="/BooruHomePage/ToggleSwitchAllowHeld" Header="顯示被攔截的圖片" Margin="0,48,0,0" IsOn="{Binding IsFilterAllowHeld, Mode=TwoWay}"/>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockAllowHeld" Text="一些剛上傳但未被標籤的圖片都會可能會暫時被攔截。您可以選擇提前看到這些新圖，但黑名單可能對它們沒有效果。" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterBlacklistFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding SearchPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockBlacklistItem" Margin="36,0,0,0" Text="黑名單" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <AutoSuggestBox x:Name="BlacklistTagBox" Header="黑名單標籤" 
+                                Text="{Binding TagBlacklist, Mode=TwoWay}"
+                                PlaceholderText="用空格分隔標籤"
+                                TextChanged="BlacklistTagBox_TextChanged"
+                                SuggestionChosen="BlacklistTagBox_SuggestionChosen">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Padding="4" Orientation="Horizontal" Margin="0,2">
+                                <StackPanel.Background>
+                                    <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
+                                </StackPanel.Background>
+                                <TextBlock Text="{Binding DisplayName}" Margin="4,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockBlacklist" Text="所有包含黑名單標籤的貼圖將被隱藏，用空格分隔標籤。注意此黑名單不會與您yandere帳號的網頁版設置同步。" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Flyout>
+
+        <!-- 修改后的 FilterMainFlyout 定义，仅保留评级过滤选项 -->
+        <Flyout Placement="Bottom" x:Key="FilterMainFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding SearchPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockMainFilterItem" Margin="36,0,0,0" Text="主過濾" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <!-- 移除选项1和选项2 -->
+                <!-- 
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxMainOption1" Content="选项1" IsChecked="{Binding IsFilterOption1, Mode=TwoWay}" />
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxMainOption2" Content="选项2" IsChecked="{Binding IsFilterOption2, Mode=TwoWay}" />
+                -->
+
+                <!-- 保留评级过滤选项 -->
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingSafe" Content="Safe" IsChecked="{Binding IsFilterSafe, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsFilterSafeUnlocked}" Margin="0,10,0,0"/>
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingQuestionable" Content="Questionable" IsChecked="{Binding IsFilterQuestionable, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsFilterQuestionableUnlocked}" Margin="0,5,0,0"/>
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingExplicit" Content="Explicit" IsChecked="{Binding IsFilterExplicit, Mode=TwoWay}"
+                          IsEnabled="{Binding IsFilterExplicitUnlocked}" Margin="0,5,0,0"/>
+
+                <!-- 其他必要的过滤选项 -->
+                <CheckBox Content="水平" IsChecked="{Binding IsFilterHorizontal, Mode=TwoWay}" Margin="0,15,0,0"/>
+                <CheckBox Content="垂直" IsChecked="{Binding IsFilterVertical, Mode=TwoWay}" Margin="0,5,0,0"/>
+                <CheckBox Content="隐藏图像" IsChecked="{Binding IsFilterAllowHidden, Mode=TwoWay}" Margin="0,5,0,0"/>
+                <CheckBox Content="未审核图像" IsChecked="{Binding IsFilterAllowHeld, Mode=TwoWay}" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Flyout>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup>
+                <VisualState>
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="600" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="TabListView.Margin" Value="0,0,12,0"/>
+                        <Setter Target="FeatureTextBlock.Visibility" Value="Visible"/>
+                        <Setter Target="BrowseTextBlock.Visibility" Value="Visible"/>
+                        <Setter Target="FavoriteTextBlock.Visibility" Value="Visible"/>
+                        <Setter Target="MoreTextBlock.Visibility" Value="Visible"/>
+                        <Setter Target="CurrentHeaderTextBlock.Visibility" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState>
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0" />
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="TabListView.Margin" Value="0"/>
+                        <Setter Target="FeatureTextBlock.Visibility" Value="Collapsed"/>
+                        <Setter Target="BrowseTextBlock.Visibility" Value="Collapsed"/>
+                        <Setter Target="FavoriteTextBlock.Visibility" Value="Collapsed"/>
+                        <Setter Target="MoreTextBlock.Visibility" Value="Collapsed"/>
+                        <Setter Target="CurrentHeaderTextBlock.Visibility" Value="Visible"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Pivot EntranceNavigationTransitionInfo.IsTargetElement="False"
+               Style="{StaticResource PivotStyleNoHeader}" x:Name="MainPivot"
+               Grid.Row="1" SelectedIndex="{Binding SelectedViewIndex, Mode=TwoWay}" Margin="0,-48,0,0">
+
+            <Pivot.HeaderTemplate>
+                <DataTemplate>
+                    <Grid />
+                </DataTemplate>
+            </Pivot.HeaderTemplate>
+            
+            <!-- Feature -->
+            <PivotItem Margin="0">
+                <Grid x:Name="FeatureRoot" Padding="0,48,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="1" Extensions:ScrollViewerOverflow.OverflowMargin="0,150,0,0">
+                        <StackPanel>
+                            <Grid Grid.Row="0" Height="48" VerticalAlignment="Top">
+                                <AppBarButton Width="64" HorizontalAlignment="Right" Icon="Refresh" Click="AppBarButton_Click"/>
+                            </Grid>
+
+                            <local:FeatureView x:Name="FeatureView" />
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </PivotItem>
+
+            <!-- Image Search List -->
+            <PivotItem Margin="0">
+                <Grid Padding="0,48,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <UserControl Grid.Row="1">
+                        <Grid>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="1200" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="BrowsePanel.RowHeight" Value="360"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="700" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="BrowsePanel.RowHeight" Value="300"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="500" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="BrowsePanel.RowHeight" Value="200"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="0" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="BrowsePanel.RowHeight" Value="150"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ScrollViewer Extensions:ScrollViewerOverflow.OverflowMargin="0,150,0,0">
+                                <CommonControl:JustifiedWrapPanel x:Name="BrowsePanel" Margin="4" ItemsSource="{Binding SearchPosts}" ItemClick="BrowsePanel_ItemClick">
+                                    <CommonControl:JustifiedWrapPanel.ItemTemplate>
+                                        <DataTemplate x:DataType="m:Post">
+                                            <Grid BorderThickness="0" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                                <Border x:Name="Image" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" BorderThickness="1" BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}">
+                                                    <Image x:Name="PreviewImage" Stretch="UniformToFill" Source="{Binding BrowseThumbnailUrl}" ImageOpened="Image_ImageOpened" HorizontalAlignment="Center" />
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </CommonControl:JustifiedWrapPanel.ItemTemplate>
+                                    <CommonControl:JustifiedWrapPanel.ItemContainerStyle>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="Transitions">
+                                                <Setter.Value>
+                                                    <TransitionCollection>
+                                                        <!--<AddDeleteThemeTransition/>-->
+                                                        <!--<EntranceThemeTransition/>-->
+                                                        <RepositionThemeTransition IsStaggeringEnabled="False"/>
+                                                    </TransitionCollection>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </CommonControl:JustifiedWrapPanel.ItemContainerStyle>
+                                </CommonControl:JustifiedWrapPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </UserControl>
+
+                    <CommandBar Grid.RowSpan="1"
+                                HorizontalContentAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
+                                IsDynamicOverflowEnabled="False"
+                                FCU:Background="{ThemeResource CommandBarAcrylicBackgroundBrush}"
+                                CU:Background="{ThemeResource ScrollBarButtonForegroundThemeBrush}" DefaultLabelPosition="Right" 
+                                >
+                        <CommandBar.Content>
+                            <Grid HorizontalAlignment="Stretch" Padding="4">
+                                <AutoSuggestBox x:Uid="/BooruHomePage/AutoSuggestBoxSearch" x:Name="SearchBox" HorizontalAlignment="Stretch"
+                                                QuerySubmitted="SearchBox_QuerySubmitted" 
+                                                SuggestionChosen="SearchBox_SuggestionChosen"
+                                                QueryIcon="Find" 
+                                                TextChanged="SearchBox_TextChanged" BorderThickness="1"
+                                                VerticalAlignment="Center"
+                                                FontSize="18" VerticalContentAlignment="Center"
+                                                PlaceholderText="Search for tags"
+                                                Loaded="SearchBox_Loaded" Unloaded="SearchBox_Unloaded">
+                                    <AutoSuggestBox.TextBoxStyle>
+                                        <Style TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                        </Style>
+                                    </AutoSuggestBox.TextBoxStyle>
+                                    <AutoSuggestBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Padding="8" Orientation="Horizontal" Margin="0,4">
+                                                <StackPanel.Background>
+                                                    <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
+                                                </StackPanel.Background>
+                                                <SymbolIcon Symbol="{Binding Type, Converter={StaticResource TagTypeSymbolConverter}}"/>
+                                                <TextBlock Text="{Binding DisplayName}" Margin="8,0,0,0"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </AutoSuggestBox.ItemTemplate>
+                                </AutoSuggestBox>
+                            </Grid>
+                        </CommandBar.Content>
+
+                        <AppBarButton x:Uid="/BooruHomePage/AppBarButtonFilter" x:Name="FilterButton" Icon="Filter" Label="Filter" 
+                                      AllowFocusOnInteraction ="True"
+                                      Click="FilterButton_Click"/>
+
+                        <CommandBar.SecondaryCommands>
+                            <AppBarButton  Label="{Binding SearchPosts.Source.TotalCount, Converter={StaticResource StringFormatConverter}, ConverterParameter='Total: {0}'}" IsEnabled="False"/>
+                            <AppBarButton  Label="{Binding SearchPosts.Source.Count, Converter={StaticResource StringFormatConverter}, ConverterParameter='Loaded: {0}'}" IsEnabled="False"/>
+                            <AppBarButton  Label="{Binding SearchPosts.Count, Converter={StaticResource StringFormatConverter}, ConverterParameter='Filtered: {0}'}" IsEnabled="False"/>
+                        </CommandBar.SecondaryCommands>
+                    </CommandBar>
+                </Grid>
+            </PivotItem>
+
+            <!-- Favorited Image List -->
+            <PivotItem Margin="0">
+                <Grid HorizontalAlignment="Stretch" Margin="0,48,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <UserControl Grid.Row="1">
+                        <Grid>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="1200" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="FavoritePanel.RowHeight" Value="360"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="700" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="FavoritePanel.RowHeight" Value="300"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="500" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="FavoritePanel.RowHeight" Value="200"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState>
+                                        <VisualState.StateTriggers>
+                                            <AdaptiveTrigger MinWindowWidth="0" />
+                                        </VisualState.StateTriggers>
+                                        <VisualState.Setters>
+                                            <Setter Target="FavoritePanel.RowHeight" Value="150"/>
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <ScrollViewer Extensions:ScrollViewerOverflow.OverflowMargin="0,150,0,0">
+                                <CommonControl:JustifiedWrapPanel x:Name="FavoritePanel" Margin="4" ItemsSource="{Binding FavoritePosts}" ItemClick="BrowsePanel_ItemClick">
+                                    <CommonControl:JustifiedWrapPanel.ItemTemplate>
+                                        <DataTemplate x:DataType="m:Post">
+                                            <Grid BorderThickness="0" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                                                <Border x:Name="Image" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" BorderThickness="1" BorderBrush="{ThemeResource SystemControlBackgroundBaseLowBrush}">
+                                                    <Image x:Name="PreviewImage" Stretch="UniformToFill" Source="{Binding BrowseThumbnailUrl}" ImageOpened="Image_ImageOpened" HorizontalAlignment="Center" />
+                                                </Border>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </CommonControl:JustifiedWrapPanel.ItemTemplate>
+                                    <CommonControl:JustifiedWrapPanel.ItemContainerStyle>
+                                        <Style TargetType="ContentControl">
+                                            <Setter Property="Transitions">
+                                                <Setter.Value>
+                                                    <TransitionCollection>
+                                                        <!--<AddDeleteThemeTransition/>-->
+                                                        <!--<EntranceThemeTransition/>-->
+                                                        <RepositionThemeTransition IsStaggeringEnabled="False"/>
+                                                    </TransitionCollection>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </CommonControl:JustifiedWrapPanel.ItemContainerStyle>
+                                </CommonControl:JustifiedWrapPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </UserControl>
+
+                    <CommandBar Grid.RowSpan="1" 
+                                HorizontalContentAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
+                                IsDynamicOverflowEnabled="False" DefaultLabelPosition="Right" 
+                                FCU:Background="{ThemeResource CommandBarAcrylicBackgroundBrush}"
+                                CU:Background="{ThemeResource ScrollBarButtonForegroundThemeBrush}"
+                                >
+                        <CommandBar.Content>
+                            <Grid HorizontalAlignment="Stretch" Height="40" Padding="4">
+                                <StackPanel VerticalAlignment="Stretch" Orientation="Horizontal" Margin="4,0">
+                                    <TextBlock x:Uid="/BooruHomePage/TextBlockFavoriteSorting" Text="Sorting:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ComboBox VerticalAlignment="Center" Background="Transparent" 
+                                              BorderThickness="1"
+                                              SelectionChanged="ComboBox_SelectionChanged"
+                                              SelectedIndex="{Binding FavoriteSortingModeSelectedIndex, Mode=TwoWay}">
+                                        <TextBlock x:Uid="/BooruHomePage/TextBlockFavoriteSortingFavorite" Text="Favorite Date"/>
+                                        <TextBlock x:Uid="/BooruHomePage/TextBlockFavoriteSortingNewPost" Text="New Post First"/>
+                                        <TextBlock x:Uid="/BooruHomePage/TextBlockFavoriteSortingOldPost" Text="Old Post First"/>
+                                        <TextBlock x:Uid="/BooruHomePage/TextBlockFavoriteSortingHighScore" Text="High Score First"/>
+                                        <TextBlock x:Uid="/BooruHomePage/TextBlockFavoriteSortingLowScore" Text="Low Score First"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+                        </CommandBar.Content>
+
+                        <AppBarButton  x:Name="FavoriteRefreshButton" Label="Refresh" 
+                                       FCU:Style="{StaticResource AppBarButtonRevealStyle}"
+                                       HorizontalAlignment="Right" Icon="Refresh" Click="FavoriteRefreshButton_Click" />
+
+                        <CommandBar.SecondaryCommands>
+                            <AppBarButton  Label="{Binding FavoritePosts.TotalCount, Converter={StaticResource StringFormatConverter}, ConverterParameter='Total: {0}'}" IsEnabled="False"/>
+                            <AppBarButton  Label="{Binding FavoritePosts.Count, Converter={StaticResource StringFormatConverter}, ConverterParameter='Loaded: {0}'}" IsEnabled="False"/>
+                        </CommandBar.SecondaryCommands>
+                    </CommandBar>
+                </Grid>
+            </PivotItem>
+
+            <!-- More items -->
+            <PivotItem Margin="0">
+                <Grid Margin="0,48,0,0">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Extensions:ScrollViewerOverflow.OverflowMargin="0,150,0,0">
+                        <local:AccountView/>
+                    </ScrollViewer>
+                </Grid>
+            </PivotItem>
+        </Pivot>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,-40,0,0" Padding="0,40,0,0" EntranceNavigationTransitionInfo.IsTargetElement="False" 
+              BorderThickness="0,0,0,1" BorderBrush="{ThemeResource SystemControlDisabledChromeDisabledHighBrush}">
+
+            <!-- Acrylic background -->
+            <FCU:Rectangle Margin="0,-40,0,0"  Fill="{ThemeResource SystemControlAcrylicElementBrush}"/>
+            <CU:Rectangle Margin="0,-40,0,0" >
+                <Rectangle.Fill>
+                    <SolidColorBrush Color="{ThemeResource SystemAltMediumHighColor}"/>
+                </Rectangle.Fill>
+            </CU:Rectangle>
+
+            <TextBlock x:Name="CurrentHeaderTextBlock" Style="{StaticResource PageTitleTextBlockStyle}" Text="{Binding SelectedItem.Tag, ElementName=TabListView}" Visibility="Collapsed"/>
+
+            <ListView x:Name="TabListView" SelectionMode="Single" Margin="0,48,12,0"
+                      SelectedIndex="{Binding SelectedViewIndex, Mode=TwoWay}"
+                      IsItemClickEnabled="True"
+                      HorizontalAlignment="Right"
+                      ScrollViewer.VerticalScrollMode="Disabled">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem" BasedOn="{StaticResource ListViewItemTab}">
+                        <Setter Property="BorderBrush" Value="{ThemeResource SystemChromeLowColor}"/>
+                        <Setter Property="Foreground" Value="{ThemeResource SystemBaseHighColor}"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <ItemsStackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+                <StackPanel x:Uid="/BooruHomePage/StackPanelHeaderFeature" Tag="精選" Orientation="Horizontal">
+                    <SymbolIcon Symbol="Home" Width="48" />
+                    <TextBlock x:Uid="/BooruHomePage/TextBlockHeaderFeature" x:Name="FeatureTextBlock" Margin="0,0,16,0"/>
+                </StackPanel>
+                <StackPanel x:Uid="/BooruHomePage/StackPanelHeaderBrowse" Tag="瀏覽" Orientation="Horizontal">
+                    <SymbolIcon Symbol="BrowsePhotos" Width="48" RenderTransformOrigin="0.5,0.5" >
+                        <SymbolIcon.RenderTransform>
+                            <CompositeTransform TranslateY="3"/>
+                        </SymbolIcon.RenderTransform>
+                    </SymbolIcon>
+                    <TextBlock x:Uid="/BooruHomePage/TextBlockHeaderBrowse" x:Name="BrowseTextBlock" Margin="0,0,16,0"/>
+                </StackPanel>
+                <StackPanel x:Uid="/BooruHomePage/StackPanelHeaderFavorite" Tag="收藏" Orientation="Horizontal">
+                    <SymbolIcon Symbol="OutlineStar" Width="48" />
+                    <TextBlock x:Uid="/BooruHomePage/TextBlockHeaderFavorite" x:Name="FavoriteTextBlock" Margin="0,0,16,0"/>
+                </StackPanel>
+                <Grid>
+                    <StackPanel x:Uid="/BooruHomePage/StackPanelHeaderMore" Tag="更多" Orientation="Horizontal">
+                        <SymbolIcon Symbol="Setting" Width="48" />
+                        <TextBlock x:Name="MoreTextBlock" Margin="0,0,0,0"/>
+                    </StackPanel>
+                    <Ellipse Height="8" Width="8" Margin="24,0,0,24" Fill="Red" Visibility="{Binding HasUpdate, Source={StaticResource AppSettings}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                </Grid>
+            </ListView>
+        </Grid>
+    </Grid>
+</Page>

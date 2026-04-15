@@ -1,0 +1,139 @@
+﻿<Page
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:PRPR.BooruViewer.Views"
+    xmlns:CommonControl="using:PRPR.Common.Controls" 
+    xmlns:Extensions="using:PRPR.Common.Extensions"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:wp="using:Microsoft.Toolkit.Uwp.UI.Controls"
+    xmlns:ViewModels="using:PRPR.BooruViewer.ViewModels"
+    xmlns:FCU="http://schemas.microsoft.com/winfx/2006/xaml/presentation?IsApiContractPresent(Windows.Foundation.UniversalApiContract,5)"
+    xmlns:CU="http://schemas.microsoft.com/winfx/2006/xaml/presentation?IsApiContractNotPresent(Windows.Foundation.UniversalApiContract,5)"
+
+    x:Class="PRPR.BooruViewer.Views.AboutPage"
+    mc:Ignorable="d"
+    
+    NavigationCacheMode="Required">
+
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Extensions:ScrollViewerOverflow.OverflowMargin="0,150,0,0" Grid.Row="2">
+            <StackPanel Padding="12,12,12,0">
+
+                <TextBlock x:Uid="/AboutPage/TextBlockVersion" Text="Version:"/>
+                <StackPanel Orientation="Horizontal">
+
+                    <TextBlock Text="{x:Bind AppVersion}" Margin="0,8"/>
+                    <Button Padding="12,0" Margin="12,0" VerticalAlignment="Stretch" Height="32" FCU:Style="{StaticResource ButtonRevealStyle}">
+                        <StackPanel >
+                            <TextBlock x:Uid="/AboutPage/TextBlockPatchNotes"/>
+                        </StackPanel>
+
+                        <Button.Flyout>
+                            <Flyout>
+                                <Flyout.FlyoutPresenterStyle>
+                                    <Style TargetType="FlyoutPresenter">
+                                        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+                                        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled"/>
+                                        <Setter Property="Padding" Value="0"/>
+                                    </Style>
+                                </Flyout.FlyoutPresenterStyle>
+
+                                <ListView x:Name="DevLogsListView" SelectionMode="None" ItemsSource="{x:Bind UpdateNotes}">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock TextWrapping="Wrap" Margin="0,12" Text="{Binding}" />
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+
+
+                <TextBlock Text=""/>
+
+
+
+                <TextBlock x:Uid="/AboutPage/TextBlockAuthor" Text="Author："/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="laplamgor" VerticalAlignment="Center"/>
+                    <HyperlinkButton NavigateUri="mailto:laplamgor2@gmail.com">
+                        <TextBlock Text=" (Gmail)"/>
+                    </HyperlinkButton>
+                </StackPanel>
+                <TextBlock Text=""/>
+
+
+                <TextBlock x:Uid="/AboutPage/TextBlockSourceCode" Text="Source Code:"/>
+                <HyperlinkButton NavigateUri="https://github.com/laplamgor/PRPR">
+                    <TextBlock Text="GitHub"/>
+                </HyperlinkButton>
+                <TextBlock Text=""/>
+
+                <StackPanel x:Uid="/AboutPage/StackPanelQQ">
+                    <TextBlock Text="老司機福利Q群："/>
+                    <RichTextBlock IsTextSelectionEnabled="True">
+                        <Paragraph>
+                            <Run Text="387526263"/>
+                        </Paragraph>
+                    </RichTextBlock>
+                    <TextBlock Text=""/>
+                </StackPanel>
+
+                <TextBlock x:Uid="/AboutPage/TextBlockTip" Text="Tip Me:"/>
+                <wp:WrapPanel>
+                    <HyperlinkButton NavigateUri="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&amp;hosted_button_id=RZJWCKCL9N6RU">
+                        <Image Width="160" HorizontalAlignment="Left" Stretch="Uniform">
+                            <Image.Source>
+                                <SvgImageSource UriSource="/Assets/PayPal_logo.svg" RasterizePixelHeight="271" RasterizePixelWidth="1024" />
+                            </Image.Source>
+                        </Image>
+                    </HyperlinkButton>
+
+                    <Button Background="Transparent" BorderThickness="0">
+                        <Button.Flyout>
+                            <Flyout>
+                                <Image Height="200" Width="200" HorizontalAlignment="Left">
+                                    <Image.Source>
+                                        <SvgImageSource UriSource="/Assets/AliPay_QR.svg"  RasterizePixelHeight="296"
+                    RasterizePixelWidth="296" />
+                                    </Image.Source>
+                                </Image>
+                            </Flyout>
+                        </Button.Flyout>
+                        <Image Width="160" HorizontalAlignment="Left" Stretch="Uniform">
+                            <Image.Source>
+                                <SvgImageSource UriSource="/Assets/AliPay_logo.svg" RasterizePixelHeight="341" RasterizePixelWidth="1024" />
+                            </Image.Source>
+                        </Image>
+                    </Button>
+                </wp:WrapPanel>
+                <TextBlock Text=""/>
+
+
+                <TextBlock x:Uid="/AboutPage/TextBlockFeedback" Text="歡迎回報BUG或提出改善建議"/>
+                <TextBlock Text=""/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!--Header-->
+        <Grid BorderThickness="0,0,0,1" BorderBrush="{ThemeResource SystemControlDisabledChromeDisabledHighBrush}">
+            <FCU:Rectangle Margin="0,-40,0,0"  Fill="{ThemeResource SystemControlAcrylicElementBrush}"/>
+            <CU:Rectangle Margin="0,-40,0,0" >
+                <Rectangle.Fill>
+                    <SolidColorBrush Color="{ThemeResource SystemAltMediumHighColor}"/>
+                </Rectangle.Fill>
+            </CU:Rectangle>
+            <TextBlock x:Uid="/BooruAccountView/TextBlockAbout" x:Name="CurrentHeaderTextBlock" Style="{ThemeResource PageTitleTextBlockStyle}" Text="關於"/>
+        </Grid>
+    </Grid>
+</Page>

@@ -1,0 +1,390 @@
+<Page
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:PRPR.BooruViewer.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ViewModels="using:PRPR.BooruViewer.ViewModels"
+    xmlns:Extensions="using:PRPR.Common.Extensions"
+    xmlns:Converters="using:PRPR.BooruViewer.Converters"
+    x:Class="PRPR.BooruViewer.Views.SettingWallpaperPage"
+    mc:Ignorable="d"
+    xmlns:FCU="http://schemas.microsoft.com/winfx/2006/xaml/presentation?IsApiContractPresent(Windows.Foundation.UniversalApiContract,5)"
+    xmlns:CU="http://schemas.microsoft.com/winfx/2006/xaml/presentation?IsApiContractNotPresent(Windows.Foundation.UniversalApiContract,5)"
+
+    NavigationCacheMode="Required">
+
+    <Page.Resources>
+        <Converters:TagTypeColorConverter x:Key="TagTypeColorConverter"/>
+        <Flyout Placement="Bottom" x:Key="FilterMainFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+            <StackPanel Width="300">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="-56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="MenuFlyoutSubItem_Tapped">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatingItem" Text="評級" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Right"
+                                  Glyph="&#xE0E3;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="36,15,0,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="ListViewItem_Tapped">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Text="長闊比" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Right"
+                                  Glyph="&#xE0E3;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="36,15,0,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterHiddenPostsListViewItem_Tapped">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockAllowHiddenItem"  Text="隱藏圖片" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Right"
+                                  Glyph="&#xE0E3;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="36,15,0,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterBlacklistListViewItem_Tapped">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockBlacklistItem"  Text="黑名單" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Right"
+                                  Glyph="&#xE0E3;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="36,15,0,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterRatingFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding WallpaperPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatingItem"  Margin="36,0,0,0" Text="評級" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingSafe" Content="Safe" IsChecked="{Binding IsFilterSafe, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsFilterSafeUnlocked}"/>
+                <StackPanel Orientation="Vertical" Visibility="{Binding IsRatingFilterUnlocked, Source={StaticResource YandeSettings}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingQuestionable" Content="Questionable" IsChecked="{Binding IsFilterQuestionable, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsFilterQuestionableUnlocked}"/>
+                    <CheckBox x:Uid="/BooruHomePage/CheckBoxRatingExplicit" Content="Explicit" IsChecked="{Binding IsFilterExplicit, Mode=TwoWay}"
+                          IsEnabled="{Binding IsFilterExplicitUnlocked}"/>
+                </StackPanel>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockRating" TextWrapping="Wrap" Visibility="{Binding IsRatingFilterUnlocked, Source={StaticResource YandeSettings}, Converter={StaticResource BooleanToInvisibilityConverter}}"/>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterRatioFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding WallpaperPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Margin="36,0,0,0" Text="長闊比" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                Glyph="&#xE0E2;"
+                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                FontSize="12"
+                AutomationProperties.AccessibilityView="Raw"
+                Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                Margin="0,15,12,17" 
+                MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatioHorizontal" Content="Horizontal" IsChecked="{Binding IsFilterHorizontal, Mode=TwoWay}" 
+                          IsEnabled="{Binding IsFilterHorizontalUnlocked}"/>
+                <CheckBox x:Uid="/BooruHomePage/CheckBoxRatioVertical" Content="Vertical" IsChecked="{Binding IsFilterVertical, Mode=TwoWay}"
+                          IsEnabled="{Binding IsFilterVerticalUnlocked}"/>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockRatioSquare" Text="p.s. Square images are treated as horizontal." TextWrapping="Wrap"/>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterHiddenFlyout">
+
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding WallpaperPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockAllowHiddenItem" Margin="36,0,0,0" Text="隱藏圖片" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <ToggleSwitch x:Uid="/BooruHomePage/ToggleSwitchAllowHidden" Header="顯示被隱藏的圖片" IsOn="{Binding IsFilterAllowHidden, Mode=TwoWay}"/>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockAllowHidden" Text="一般以文字為主的圖片都會被預設隱藏。您可以選擇在搜索結果中顯示它們。" TextWrapping="Wrap"/>
+
+                <ToggleSwitch x:Uid="/BooruHomePage/ToggleSwitchAllowHeld" Header="顯示被攔截的圖片" Margin="0,48,0,0" IsOn="{Binding IsFilterAllowHeld, Mode=TwoWay}"/>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockAllowHeld" Text="一些剛上傳但未被標籤的圖片都會可能會暫時被攔截。您可以選擇提前看到這些新圖，但黑名單可能對它們沒有效果。" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterBlacklistFlyout">
+
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </Flyout.FlyoutPresenterStyle>
+
+
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding WallpaperPostFilter}">
+                <StackPanel.Transitions>
+                    <TransitionCollection>
+                        <EntranceThemeTransition FromHorizontalOffset="56"/>
+                    </TransitionCollection>
+                </StackPanel.Transitions>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockBlacklistItem" Margin="36,0,0,0" Text="黑名單" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left"
+                                  Glyph="&#xE0E2;"
+                                  FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                  FontSize="12"
+                                  AutomationProperties.AccessibilityView="Raw"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}"
+                                  Margin="0,15,12,17" 
+                                  MirroredWhenRightToLeft="True" />
+                    </Grid>
+                </ListViewItem>
+
+                <AutoSuggestBox x:Name="BlacklistTagBox" Header="黑名單標籤" 
+                                Text="{Binding TagBlacklist, Mode=TwoWay}"
+                                PlaceholderText="用空格分隔標籤"
+                                TextChanged="BlacklistTagBox_TextChanged"
+                                SuggestionChosen="BlacklistTagBox_SuggestionChosen">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Padding="4" Orientation="Horizontal" Margin="0,2">
+                                <StackPanel.Background>
+                                    <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
+                                </StackPanel.Background>
+                                <TextBlock Text="{Binding DisplayName}" Margin="4,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
+                <TextBlock x:Uid="/BooruHomePage/TextBlockBlacklist" Text="所有包含黑名單標籤的貼圖將被隱藏，用空格分隔標籤。注意此黑名單不會與您yandere帳號的網頁版設置同步。" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Flyout>
+    </Page.Resources>
+
+
+    <Page.DataContext>
+        <ViewModels:SettingWallpaperViewModel/>
+    </Page.DataContext>
+
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="1">
+            <ScrollViewer Extensions:ScrollViewerOverflow.OverflowMargin="0,150,0,0">
+                <StackPanel Padding="12,12,12,0">
+
+
+                    <ToggleSwitch x:Uid="/BooruSettingPage/ToggleSwitchAutoLockScreen" x:Name="AutoToggleSwitch" Header="自動於後台刷新壁紙" Margin="0,12,0,24"
+                                  IsOn="{Binding WallpaperUpdateTaskEnabled, Mode=TwoWay, Source={StaticResource YandeSettings}}"/>
+
+                    <TextBlock x:Uid="/BooruSettingPage/TextBlockUpdateInterval" Text="換圖間隔"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12">
+                        <TextBox Text="{Binding WallpaperUpdateTaskTimeSpan, Mode=TwoWay, Source={StaticResource YandeSettings}}" PlaceholderText="15-1440"  Margin="0" InputScope="Digits" VerticalAlignment="Center" MinWidth="0"/>
+                        <TextBlock x:Uid="/BooruSettingPage/TextBlockMinute" Text="分鐘" VerticalAlignment="Center" Margin="12,0"/>
+                        <Button FCU:Style="{StaticResource ButtonRevealStyle}" Content="?" Click="Button_Click_1" Margin="24,0,0,0"/>
+                    </StackPanel>
+                    
+                    
+                    <CheckBox x:Uid="/BooruSettingPage/CheckBoxMeteredNetwork" Content="計費網絡" 
+                              IsChecked="{Binding WallpaperUpdateTaskOnMeteredNetwork, Mode=TwoWay, Source={StaticResource YandeSettings}}" 
+                              Margin="0,12,0,0" IsEnabled="{Binding IsOn, ElementName=AutoToggleSwitch}"/>
+                    
+                    <Button x:Uid="/BooruSettingPage/ButtonManualUpdate" FCU:Style="{StaticResource ButtonRevealStyle}" Content="手動刷新看看" Click="Button_Click"  Margin="0,12,0,12"/>
+
+
+
+                    <Border BorderThickness="0,1,0,0" Margin="0,12" BorderBrush="Gray"/>
+
+
+
+                    <AutoSuggestBox x:Name="SearchTagBox" Header="搜索標籤" 
+                                    Text="{Binding WallpaperUpdateTaskSearchKey, Mode=TwoWay, Source={StaticResource YandeSettings}}" 
+                                    PlaceholderText="e.g. kancolle score:40.."
+                                    TextChanged="SearchTagBox_TextChanged"
+                                    SuggestionChosen="SearchTagBox_SuggestionChosen">
+                        <AutoSuggestBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Padding="4" Orientation="Horizontal" Margin="0,2">
+                                    <StackPanel.Background>
+                                        <SolidColorBrush Color="{Binding Type, Converter={StaticResource TagTypeColorConverter}}"/>
+                                    </StackPanel.Background>
+                                    <TextBlock Text="{Binding DisplayName}" Margin="4,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </AutoSuggestBox.ItemTemplate>
+                    </AutoSuggestBox>
+
+                    <Button FCU:Style="{StaticResource ButtonRevealStyle}" x:Name="FilterButton" Margin="0,8" HorizontalAlignment="Left"  Click="FilterButton_Click" >
+                        <StackPanel Orientation="Horizontal">
+                            <SymbolIcon Symbol="Filter" Margin="0,0,4,0"/>
+                            <TextBlock  x:Uid="/BooruSettingPage/TextBlockFilter" Text="Filter"/>
+                        </StackPanel>
+                    </Button>
+
+
+                    <TextBlock x:Uid="/BooruSettingPage/TextBlockRandomFirst" Text="隨機選取" VerticalAlignment="Center" Margin="0,24,0,12"/>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBox Text="{Binding WallpaperUpdateTaskShuffleCount, Mode=TwoWay, Source={StaticResource YandeSettings}}" PlaceholderText="1-20"  Margin="0,0,12,0" InputScope="Digits" VerticalAlignment="Center" MinWidth="0"/>
+                        <TextBlock x:Uid="/BooruSettingPage/TextBlockRandomResults" Text="個搜索結果" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:Uid="/BooruSettingPage/TextBlockRandom" MaxWidth="500" Margin="0,12,0,24" Text="如果您要搜的標籤經常沒有新圖片上傳，您可以選擇隨機洗牌最新的數張圖，這樣不至於長期無法自動更換壁紙" HorizontalAlignment="Left" TextWrapping="Wrap"/>
+
+                    
+                    
+                    <Border BorderThickness="0,1,0,0" Margin="0,12" BorderBrush="Gray"/>
+
+                    <ComboBox x:Uid="/BooruSettingPage/ComboBoxQuality" x:Name="QualityComboBox" Header="圖片質量" SelectedIndex="{Binding WallpaperUpdateTaskQuality, Source={StaticResource YandeSettings}, Mode=TwoWay}">
+                        <ComboBoxItem x:Uid="/BooruSettingPage/ComboBoxItemImageQualityMedium" Content="中"/>
+                        <ComboBoxItem x:Uid="/BooruSettingPage/ComboBoxItemImageQualityHigh"  Content="高"/>
+                    </ComboBox>
+
+
+
+                    <ComboBox x:Uid="/BooruSettingPage/ComboBoxCropMethod" x:Name="CropMethodComboBox" Header="自動剪裁" Margin="0,24,0,0" SelectedIndex="{Binding WallpaperUpdateTaskCropMethodIndex, Mode=TwoWay, Source={StaticResource YandeSettings}}">
+                        <ComboBoxItem x:Uid="/BooruSettingPage/ComboBoxItemCropDisabled" Content="無剪裁" Tag="應用不預先剪裁原圖並由系統決定顯示效果。適合經常旋轉屏幕的平板用戶。也適合同時使用不同長闊比的多屏台式機用戶"/>
+                        <ComboBoxItem x:Uid="/BooruSettingPage/ComboBoxItemCropTopCenter"  Content="頂部置中" Tag="原圖太高時去掉底部；原圖太寬時去掉左右兩側。適用於臉蛋辨識經常認錯東西的場合(例如bikini)"/>
+                        <ComboBoxItem x:Uid="/BooruSettingPage/ComboBoxItemCropCenter"  Content="置中" Tag="原圖太高時去掉上下兩側；原圖太寬時去掉左右兩側。適用於純風景圖標籤(例如landscape)"/>
+                        <ComboBoxItem x:Uid="/BooruSettingPage/ComboBoxItemCropLargestFace"  Content="最大的臉" Tag="剪裁時盡量環繞圖中最大臉蛋。辨識不到動漫臉蛋時等於頂部置中。適用於人物標籤(例如aisaka_taiga)"/>
+                        <ComboBoxItem x:Uid="/BooruSettingPage/ComboBoxItemCropMostFaces"  Content="最多的臉"  Tag="剪裁時盡量保留圖中最多臉蛋，避免合照時出現臉蛋被剪去一半的情況。辨識不到動漫臉蛋時等於頂部置中。適用於動漫作品標籤(例如k-on!)"/>
+                    </ComboBox>
+                    <TextBlock Text="{Binding SelectedItem.Tag, ElementName=CropMethodComboBox}" TextWrapping="Wrap" MaxWidth="500" HorizontalAlignment="Left"/>
+
+                    
+                    
+                    <Border BorderThickness="0,1,0,0" Margin="0,12" BorderBrush="Gray"/>
+
+
+                    <TextBlock x:Uid="/BooruSettingPage/TextBlockRecords" Text="紀錄" VerticalAlignment="Center" Margin="0,0,0,12"/>
+
+                    <ListView ItemsSource="{Binding Records}" ItemClick="ListView_ItemClick" IsItemClickEnabled="True" SelectionMode="None"
+                              ScrollViewer.HorizontalScrollMode="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <ListView.ItemTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding PostPreviewUrl}"/>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Height="160" Padding="0,0,0,16"/>
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+                    </ListView>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!--Header-->
+        <Grid
+              BorderThickness="0,0,0,1" BorderBrush="{ThemeResource SystemControlDisabledChromeDisabledHighBrush}">
+            <FCU:Rectangle Margin="0,-40,0,0"  Fill="{ThemeResource SystemControlAcrylicElementBrush}"/>
+            <CU:Rectangle Margin="0,-40,0,0" >
+                <Rectangle.Fill>
+                    <SolidColorBrush Color="{ThemeResource SystemAltMediumHighColor}"/>
+                </Rectangle.Fill>
+            </CU:Rectangle>
+            <TextBlock x:Uid="/BooruAccountView/TextBlockWallPaper" x:Name="CurrentHeaderTextBlock" Style="{ThemeResource PageTitleTextBlockStyle}" Text="壁紙"/>
+        </Grid>
+    </Grid>
+</Page>
