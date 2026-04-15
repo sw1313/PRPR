@@ -16,6 +16,7 @@
 
     <Page.Resources>
         <Converters:TagTypeColorConverter x:Key="TagTypeColorConverter"/>
+        <Converters:IntToBoolConverter x:Key="IntToBoolConverter"/>
         <Flyout Placement="Bottom" x:Key="FilterMainFlyout">
             <Flyout.FlyoutPresenterStyle>
                 <Style TargetType="FlyoutPresenter">
@@ -47,7 +48,7 @@
 
                 <ListViewItem HorizontalContentAlignment="Stretch" Tapped="ListViewItem_Tapped">
                     <Grid>
-                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Text="長闊比" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Text="长宽比" VerticalAlignment="Center"/>
                         <FontIcon HorizontalAlignment="Right"
                                   Glyph="&#xE0E3;"
                                   FontFamily="{ThemeResource SymbolThemeFontFamily}"
@@ -87,6 +88,62 @@
                                   MirroredWhenRightToLeft="True" />
                     </Grid>
                 </ListViewItem>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterSortListViewItem_Tapped">
+                    <Grid>
+                        <TextBlock Text="排序" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Right" Glyph="&#xE0E3;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}" Margin="36,15,0,17" MirroredWhenRightToLeft="True"/>
+                    </Grid>
+                </ListViewItem>
+
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterTimeListViewItem_Tapped">
+                    <Grid>
+                        <TextBlock Text="时间范围" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Right" Glyph="&#xE0E3;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}" Margin="36,15,0,17" MirroredWhenRightToLeft="True"/>
+                    </Grid>
+                </ListViewItem>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterSortFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter"><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/></Style>
+            </Flyout.FlyoutPresenterStyle>
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding WallpaperPostFilter}">
+                <StackPanel.Transitions><TransitionCollection><EntranceThemeTransition FromHorizontalOffset="56"/></TransitionCollection></StackPanel.Transitions>
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock Margin="36,0,0,0" Text="排序" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left" Glyph="&#xE0E2;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}" Margin="0,15,12,17" MirroredWhenRightToLeft="True"/>
+                    </Grid>
+                </ListViewItem>
+                <RadioButton Content="按时间" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" GroupName="WpSort"/>
+                <RadioButton Content="按热度" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="WpSort"/>
+                <RadioButton Content="按收藏" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}" GroupName="WpSort"/>
+            </StackPanel>
+        </Flyout>
+
+        <Flyout Placement="Bottom" x:Key="FilterTimeFlyout">
+            <Flyout.FlyoutPresenterStyle>
+                <Style TargetType="FlyoutPresenter"><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/></Style>
+            </Flyout.FlyoutPresenterStyle>
+            <StackPanel Width="300" Padding="12,0,12,12" DataContext="{Binding WallpaperPostFilter}">
+                <StackPanel.Transitions><TransitionCollection><EntranceThemeTransition FromHorizontalOffset="56"/></TransitionCollection></StackPanel.Transitions>
+                <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
+                    <Grid>
+                        <TextBlock Margin="36,0,0,0" Text="时间范围" VerticalAlignment="Center"/>
+                        <FontIcon HorizontalAlignment="Left" Glyph="&#xE0E2;" FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12"
+                                  Foreground="{ThemeResource SystemControlForegroundBaseMediumHighBrush}" Margin="0,15,12,17" MirroredWhenRightToLeft="True"/>
+                    </Grid>
+                </ListViewItem>
+                <RadioButton Content="不限" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" GroupName="WpTime"/>
+                <RadioButton Content="今天" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="WpTime"/>
+                <RadioButton Content="本周" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}" GroupName="WpTime"/>
+                <RadioButton Content="本月" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}" GroupName="WpTime"/>
+                <RadioButton Content="今年" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=4}" GroupName="WpTime"/>
             </StackPanel>
         </Flyout>
 
@@ -148,7 +205,7 @@
 
                 <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
                     <Grid>
-                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Margin="36,0,0,0" Text="長闊比" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Margin="36,0,0,0" Text="长宽比" VerticalAlignment="Center"/>
                         <FontIcon HorizontalAlignment="Left"
                 Glyph="&#xE0E2;"
                 FontFamily="{ThemeResource SymbolThemeFontFamily}"

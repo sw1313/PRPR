@@ -28,6 +28,7 @@
         <CommonConverters:RandomGrayConverter x:Key="RandomGrayConverter"/>
         <Converters:TagTypeSymbolConverter x:Key="TagTypeSymbolConverter"/>
         <Converters:TagTypeColorConverter x:Key="TagTypeColorConverter"/>
+        <Converters:IntToBoolConverter x:Key="IntToBoolConverter"/>
 
         <!-- DataTemplate 使用 Post 类型 -->
         <DataTemplate x:Key="PostTemplate" x:DataType="m:Post">
@@ -101,7 +102,7 @@
 
                 <ListViewItem HorizontalContentAlignment="Stretch" Tapped="FilterReturnItem_Tapped" Margin="-12,0">
                     <Grid>
-                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Margin="36,0,0,0" Text="長闊比" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="/BooruHomePage/TextBlockRatioItem" Margin="36,0,0,0" Text="长宽比" VerticalAlignment="Center"/>
                         <FontIcon HorizontalAlignment="Left"
                                   Glyph="&#xE0E2;"
                                   FontFamily="{ThemeResource SymbolThemeFontFamily}"
@@ -256,6 +257,18 @@
                 <CheckBox Content="垂直" IsChecked="{Binding IsFilterVertical, Mode=TwoWay}" Margin="0,5,0,0"/>
                 <CheckBox Content="隐藏图像" IsChecked="{Binding IsFilterAllowHidden, Mode=TwoWay}" Margin="0,5,0,0"/>
                 <CheckBox Content="未审核图像" IsChecked="{Binding IsFilterAllowHeld, Mode=TwoWay}" Margin="0,5,0,0"/>
+
+                <TextBlock Text="排序" FontWeight="SemiBold" Margin="0,15,0,5"/>
+                <RadioButton Content="按时间" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" GroupName="Sort" Margin="0,0,0,-5"/>
+                <RadioButton Content="按热度" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="Sort" Margin="0,0,0,-5"/>
+                <RadioButton Content="按收藏" IsChecked="{Binding SortOrder, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}" GroupName="Sort" Margin="0,0,0,-5"/>
+
+                <TextBlock Text="时间范围" FontWeight="SemiBold" Margin="0,10,0,5"/>
+                <RadioButton Content="不限" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=0}" GroupName="Time" Margin="0,0,0,-5"/>
+                <RadioButton Content="今天" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=1}" GroupName="Time" Margin="0,0,0,-5"/>
+                <RadioButton Content="本周" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=2}" GroupName="Time" Margin="0,0,0,-5"/>
+                <RadioButton Content="本月" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=3}" GroupName="Time" Margin="0,0,0,-5"/>
+                <RadioButton Content="今年" IsChecked="{Binding TimeRange, Mode=TwoWay, Converter={StaticResource IntToBoolConverter}, ConverterParameter=4}" GroupName="Time" Margin="0,0,0,-5"/>
             </StackPanel>
         </Flyout>
     </Page.Resources>

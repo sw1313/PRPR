@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -229,7 +229,7 @@
     <value>评级</value>
   </data>
   <data name="TextBlockRatioItem.Text" xml:space="preserve">
-    <value>长阔比</value>
+    <value>长宽比</value>
   </data>
   <data name="TextBlockRatioSquare.Text" xml:space="preserve">
     <value>注意：正方图片归入横向类</value>

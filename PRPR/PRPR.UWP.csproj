@@ -162,6 +162,7 @@
     <Compile Include="BooruViewer\Converters\TagNameConverter.cs" />
     <Compile Include="BooruViewer\Converters\TagTypeSymbolConverter.cs" />
     <Compile Include="BooruViewer\Converters\TagTypeColorConverter.cs" />
+    <Compile Include="BooruViewer\Converters\IntToBoolConverter.cs" />
     <Compile Include="BooruViewer\Models\Comment.cs" />
     <Compile Include="BooruViewer\Models\Comments.cs" />
     <Compile Include="BooruViewer\Models\PostFilter.cs" />

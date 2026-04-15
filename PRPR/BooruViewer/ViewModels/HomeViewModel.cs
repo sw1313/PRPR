@@ -55,6 +55,8 @@ namespace PRPR.BooruViewer.ViewModels
             }
         }
 
+        private string _lastSearchKeyword = "";
+
         private FilteredCollection<Post, Posts> _searchPosts = null;
 
         public FilteredCollection<Post, Posts> SearchPosts
@@ -178,7 +180,7 @@ namespace PRPR.BooruViewer.ViewModels
             }
         }
 
-        private void SearchPostFilter_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private async void SearchPostFilter_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             if (sender is PostFilter filter)
             {
@@ -193,7 +195,11 @@ namespace PRPR.BooruViewer.ViewModels
                     case nameof(filter.IsFilterExplicit):
                         SaveSetting(nameof(filter.IsFilterExplicit), filter.IsFilterExplicit);
                         break;
-                    // 添加其他需要保存的属性
+                    case nameof(filter.SortOrder):
+                    case nameof(filter.TimeRange):
+                        if (!string.IsNullOrEmpty(_lastSearchKeyword))
+                            await SearchAsync(_lastSearchKeyword);
+                        break;
                 }
             }
         }
@@ -202,7 +208,7 @@ namespace PRPR.BooruViewer.ViewModels
 
         public async Task SearchAsync(string keyword)
         {
-            // 验证关键词
+            _lastSearchKeyword = keyword;
 
             // 如果标签数量超过6个，则不进行搜索
             if (keyword.Split(' ').Count(o => !String.IsNullOrWhiteSpace(o)) > 6)
@@ -235,7 +241,9 @@ namespace PRPR.BooruViewer.ViewModels
             Posts posts = new Posts();
             try
             {
-                string baseUrl = $"{YandeClient.HOST}/post.xml?tags={WebUtility.UrlEncode(keyword)}";
+                var metaTags = SearchPostFilter.BuildMetaTags();
+                var fullQuery = string.IsNullOrWhiteSpace(metaTags) ? keyword : (keyword + " " + metaTags);
+                string baseUrl = $"{YandeClient.HOST}/post.xml?tags={WebUtility.UrlEncode(fullQuery)}";
 
                 // 获取第一页的图片
                 posts = await Posts.DownloadPostsAsync(1, baseUrl);
