@@ -55,7 +55,7 @@ namespace PRPR.BooruViewer.ViewModels
             }
         }
 
-        private string _lastSearchKeyword = "";
+        private string _lastSearchKeyword = null;
 
         private FilteredCollection<Post, Posts> _searchPosts = null;
 
@@ -197,7 +197,7 @@ namespace PRPR.BooruViewer.ViewModels
                         break;
                     case nameof(filter.SortOrder):
                     case nameof(filter.TimeRange):
-                        if (!string.IsNullOrEmpty(_lastSearchKeyword))
+                        if (_lastSearchKeyword != null)
                             await SearchAsync(_lastSearchKeyword);
                         break;
                 }
