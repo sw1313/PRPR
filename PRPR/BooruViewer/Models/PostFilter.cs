@@ -137,7 +137,7 @@ namespace PRPR.BooruViewer.Models
         public bool IsFilterHorizontalUnlocked => !IsFilterHorizontal || IsFilterVertical;
         public bool IsFilterVerticalUnlocked => IsFilterHorizontal || !IsFilterVertical;
 
-        // 排序：0=按时间, 1=按热度, 2=按收藏
+        // 排序：0=按时间, 1=按评分
         private int _sortOrder = 0;
         public int SortOrder
         {
@@ -170,11 +170,7 @@ namespace PRPR.BooruViewer.Models
         public string BuildMetaTags()
         {
             var parts = new List<string>();
-            switch (SortOrder)
-            {
-                case 1: parts.Add("order:score"); break;
-                case 2: parts.Add("order:favcount"); break;
-            }
+            if (SortOrder == 1) parts.Add("order:score");
             switch (TimeRange)
             {
                 case 1: parts.Add($"date:>={DateTime.UtcNow:yyyy-MM-dd}"); break;
