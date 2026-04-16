@@ -1,0 +1,2 @@
+MainPackage=D:\PRPR\UWP\PRPR\bin\x64\Debug\PRPR.UWP_2.7.5.0_x64_Debug.msix
+SymbolPackage=D:\PRPR\UWP\PRPR\obj\x64\Debug\Symbols\PRPR.UWP_2.7.5.0_x64_Debug.appxsym

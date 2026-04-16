@@ -1,0 +1,5 @@
+MainPackage=D:\PRPR\UWP\PRPR\bin\ARM\Debug\PRPR.UWP_2.7.5.0_ARM_Debug.msix
+SymbolPackage=D:\PRPR\UWP\PRPR\obj\ARM\Debug\Symbols\PRPR.UWP_2.7.5.0_ARM_Debug.appxsym
+ResourcePack=D:\PRPR\UWP\PRPR\bin\ARM\Debug\PRPR.UWP_2.7.5.0_language-zh-hans.msix
+ResourcePack=D:\PRPR\UWP\PRPR\bin\ARM\Debug\PRPR.UWP_2.7.5.0_language-zh-hant.msix
+ResourcePack=D:\PRPR\UWP\PRPR\bin\ARM\Debug\PRPR.UWP_2.7.5.0_scale-100.msix
