@@ -13,8 +13,15 @@ namespace PRPR.BooruViewer.Services
     public class TagSyncService
     {
         private const string REPO = "sw1313/danbooru-tags-translation";
-        private const string RAW_URL = "https://raw.githubusercontent.com/" + REPO + "/main/tags.json";
-        private const string API_CONTENTS_URL = "https://api.github.com/repos/" + REPO + "/contents/tags.json";
+        private const string FILE_PATH = "tags.json";
+        private const string API_CONTENTS_URL = "https://api.github.com/repos/" + REPO + "/contents/" + FILE_PATH;
+        private static readonly string[] DOWNLOAD_URLS = new[]
+        {
+            "https://raw.githubusercontent.com/" + REPO + "/main/" + FILE_PATH,
+            "https://cdn.jsdelivr.net/gh/" + REPO + "@main/" + FILE_PATH,
+            "https://mirror.ghproxy.com/https://raw.githubusercontent.com/" + REPO + "/main/" + FILE_PATH,
+            "https://cdn.staticaly.com/gh/" + REPO + "/main/" + FILE_PATH,
+        };
 
         private readonly TagTranslationRepository _repo;
 
@@ -66,30 +73,50 @@ namespace PRPR.BooruViewer.Services
 
         private async Task<List<TagTransEntry>> FetchRemoteEntriesAsync()
         {
-            using (var client = new HttpClient())
+            var errors = new List<string>();
+            foreach (var url in DOWNLOAD_URLS)
             {
-                var request = new HttpRequestMessage(HttpMethod.Get, new Uri(RAW_URL));
-                request.Headers.Add("Cache-Control", "no-cache");
-                request.Headers.Add("User-Agent", "PRPR-UWP");
-
-                var response = await client.SendRequestAsync(request);
-                response.EnsureSuccessStatusCode();
-                var body = await response.Content.ReadAsStringAsync();
-
-                var arr = JsonArray.Parse(body);
-                var entries = new List<TagTransEntry>(arr.Count);
-                foreach (var item in arr)
+                try
                 {
-                    var obj = item.GetObject();
-                    entries.Add(new TagTransEntry
+                    using (var client = new HttpClient())
                     {
-                        Name = obj.GetNamedString("name"),
-                        Type = (int)obj.GetNamedNumber("type", 0),
-                        ZhName = obj.ContainsKey("zh") ? obj.GetNamedString("zh", "") : "",
-                    });
+                        var request = new HttpRequestMessage(HttpMethod.Get, new Uri(url));
+                        request.Headers.Add("Cache-Control", "no-cache");
+                        request.Headers.Add("User-Agent", "PRPR-UWP");
+
+                        var response = await client.SendRequestAsync(request);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            errors.Add($"{url} -> HTTP {(int)response.StatusCode}");
+                            continue;
+                        }
+                        var body = await response.Content.ReadAsStringAsync();
+                        return ParseEntries(body);
+                    }
                 }
-                return entries;
+                catch (Exception ex)
+                {
+                    errors.Add($"{url} -> {ex.Message}");
+                }
             }
+            throw new Exception("所有下载源均失败:\n" + string.Join("\n", errors));
+        }
+
+        private List<TagTransEntry> ParseEntries(string json)
+        {
+            var arr = JsonArray.Parse(json);
+            var entries = new List<TagTransEntry>(arr.Count);
+            foreach (var item in arr)
+            {
+                var obj = item.GetObject();
+                entries.Add(new TagTransEntry
+                {
+                    Name = obj.GetNamedString("name"),
+                    Type = (int)obj.GetNamedNumber("type", 0),
+                    ZhName = obj.ContainsKey("zh") ? obj.GetNamedString("zh", "") : "",
+                });
+            }
+            return entries;
         }
 
         private async Task UploadEntriesAsync(List<TagTransEntry> entries, string pat)
