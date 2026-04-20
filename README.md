@@ -6,7 +6,7 @@
 
 ~~本应用也曾包含 ExHentai 客户端。~~
 
-原项目地址：[AmazingDM/PRPR](https://github.com/AmazingDM/PRPR)
+原项目地址：[AmazingDM/PRPR](https://github.com/laplamgor/PRPR)
 
 微软商店原链接：
 ~~https://www.microsoft.com/store/p/prpr/9nblggh4stnm~~
