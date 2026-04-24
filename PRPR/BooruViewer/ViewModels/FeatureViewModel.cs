@@ -38,6 +38,7 @@ namespace PRPR.BooruViewer.ViewModels
         };
 
         private int _refreshToken = 0;
+        private int _updateRunToken = 0;
         private bool _hasLoadedOnce = false;
 
         public FeatureViewModel()
@@ -72,6 +73,8 @@ namespace PRPR.BooruViewer.ViewModels
 
         public async Task Update()
         {
+            var runToken = ++_updateRunToken;
+
             // 使用浏览页筛选（服务器端评级过滤可大幅提高命中率）
             var searchFilter = YandeSettings.Current.SearchPostFilter;
             var metaTags = searchFilter.BuildMetaTags();
@@ -80,6 +83,8 @@ namespace PRPR.BooruViewer.ViewModels
                 : $"{YandeClient.HOST}/post.xml?tags={System.Net.WebUtility.UrlEncode(metaTags)}";
 
             var posts = await Posts.DownloadPostsAsync(1, url);
+            if (runToken != _updateRunToken) return;
+
             if (posts.Count == 0)
             {
                 UpdateTop3(Enumerable.Empty<Post>());
@@ -89,23 +94,25 @@ namespace PRPR.BooruViewer.ViewModels
             }
 
             var filterFunc = searchFilter.Function;
-            // 目标：过滤后至少 60 张，保证能凑满 6 张推荐标签
-            const int targetFilteredCount = 60;
+            // 目标：过滤后至少 80 张，保证能凑满 6 张推荐标签（tag 之间 post 重复度较高）
+            const int targetFilteredCount = 80;
             const int maxLoads = 6;
             int loads = 0;
             while (posts.HasMoreItems && loads < maxLoads &&
                    posts.Where(filterFunc).Count() < targetFilteredCount)
             {
                 var loaded = await posts.LoadMoreItemsAsync(100);
+                if (runToken != _updateRunToken) return;
                 if (loaded.Count == 0) break;
                 loads++;
             }
 
-            var postsToday = posts.Where(filterFunc);
+            var postsToday = posts.Where(filterFunc).ToList();
 
             UpdateTop3(postsToday);
 
             await TagDataBase.DownloadLatestTagDBAsync();
+            if (runToken != _updateRunToken) return;
 
             var tags = GetAllTags(postsToday);
 
@@ -138,8 +145,8 @@ namespace PRPR.BooruViewer.ViewModels
                     continue;
                 }
 
-                // Skip if all posts of it are already featured
-                if (item.Value.Posts.Any(p => Tags.Any(o => o.TopPost == p)))
+                // Skip only when every post of this tag has already been featured elsewhere
+                if (item.Value.Posts.All(p => Tags.Any(o => o.TopPost == p)))
                 {
                     continue;
                 }
@@ -149,6 +156,8 @@ namespace PRPR.BooruViewer.ViewModels
                     TopPost = item.Value.Posts.Where(p => !Tags.Any(o => o.TopPost == p))
                     .OrderBy(o => float.Parse(o.Score) / o.TagItems.Count).First()
                 });
+
+                if (Tags.Count >= 6) break;
             }
         }
 
