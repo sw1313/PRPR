@@ -23,17 +23,35 @@ namespace PRPR.BooruViewer.ViewModels
 
         public async Task Update()
         {
-            // Download the last 24 hr tags
-            var posts = await Posts.DownloadPostsAsync(1, $"{YandeClient.HOST}/post.xml");
-            long dayBefore = posts.First().created_at - 3600 * 24 * 1;
-            while (posts.Last().created_at >= dayBefore)
-            {
-                await posts.LoadMoreItemsAsync(100);
-            }
-            var postsToday = posts.Where(o => o.created_at >= dayBefore);
+            // 使用浏览页筛选（服务器端评级过滤可大幅提高命中率）
+            var searchFilter = YandeSettings.Current.SearchPostFilter;
+            var metaTags = searchFilter.BuildMetaTags();
+            var url = string.IsNullOrWhiteSpace(metaTags)
+                ? $"{YandeClient.HOST}/post.xml"
+                : $"{YandeClient.HOST}/post.xml?tags={System.Net.WebUtility.UrlEncode(metaTags)}";
 
-            var filterFunc = YandeSettings.Current.SearchPostFilter.Function;
-            postsToday = postsToday.Where(filterFunc);
+            var posts = await Posts.DownloadPostsAsync(1, url);
+            if (posts.Count == 0)
+            {
+                UpdateTop3(Enumerable.Empty<Post>());
+                UpdateFeatureTags(Enumerable.Empty<KeyValuePair<string, TagSummary>>());
+                return;
+            }
+
+            var filterFunc = searchFilter.Function;
+            // 目标：过滤后至少 60 张，保证能凑满 6 张推荐标签
+            const int targetFilteredCount = 60;
+            const int maxLoads = 6;
+            int loads = 0;
+            while (posts.HasMoreItems && loads < maxLoads &&
+                   posts.Where(filterFunc).Count() < targetFilteredCount)
+            {
+                var loaded = await posts.LoadMoreItemsAsync(100);
+                if (loaded.Count == 0) break;
+                loads++;
+            }
+
+            var postsToday = posts.Where(filterFunc);
 
             UpdateTop3(postsToday);
 
