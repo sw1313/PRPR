@@ -225,6 +225,9 @@
   <data name="ToggleSwitchAutoLockScreen.Header" xml:space="preserve">
     <value>Auto update lock screen in background</value>
   </data>
+  <data name="ToggleSwitchAutoWallpaper.Header" xml:space="preserve">
+    <value>Auto update wallpaper in background</value>
+  </data>
   <data name="ToggleSwitchDownloadPath.Header" xml:space="preserve">
     <value>Save downloaded images to a fixed location</value>
   </data>

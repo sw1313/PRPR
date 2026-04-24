@@ -418,8 +418,8 @@
                                 HorizontalContentAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
                                 IsDynamicOverflowEnabled="False"
-                                FCU:Background="{ThemeResource CommandBarAcrylicBackgroundBrush}"
-                                CU:Background="{ThemeResource ScrollBarButtonForegroundThemeBrush}" DefaultLabelPosition="Right" 
+                                FCU:Background="{ThemeResource SystemControlAcrylicElementBrush}"
+                                CU:Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}" DefaultLabelPosition="Right" 
                                 >
                         <CommandBar.Content>
                             <Grid HorizontalAlignment="Stretch" Padding="4">
@@ -543,8 +543,8 @@
                                 HorizontalContentAlignment="Stretch"
                                 HorizontalAlignment="Stretch"
                                 IsDynamicOverflowEnabled="False" DefaultLabelPosition="Right" 
-                                FCU:Background="{ThemeResource CommandBarAcrylicBackgroundBrush}"
-                                CU:Background="{ThemeResource ScrollBarButtonForegroundThemeBrush}"
+                                FCU:Background="{ThemeResource SystemControlAcrylicElementBrush}"
+                                CU:Background="{ThemeResource SystemControlBackgroundChromeMediumBrush}"
                                 >
                         <CommandBar.Content>
                             <Grid HorizontalAlignment="Stretch" Height="40" Padding="4">

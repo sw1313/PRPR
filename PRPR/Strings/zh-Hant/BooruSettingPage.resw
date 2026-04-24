@@ -225,6 +225,9 @@
   <data name="ToggleSwitchAutoLockScreen.Header" xml:space="preserve">
     <value>後台定期自動刷新鎖屏</value>
   </data>
+  <data name="ToggleSwitchAutoWallpaper.Header" xml:space="preserve">
+    <value>後台定期自動刷新壁紙</value>
+  </data>
   <data name="ToggleSwitchDownloadPath.Header" xml:space="preserve">
     <value>下載時使用指定路徑</value>
   </data>

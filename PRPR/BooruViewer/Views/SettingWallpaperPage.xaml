@@ -332,7 +332,7 @@
                 <StackPanel Padding="12,12,12,0">
 
 
-                    <ToggleSwitch x:Uid="/BooruSettingPage/ToggleSwitchAutoLockScreen" x:Name="AutoToggleSwitch" Header="自動於後台刷新壁紙" Margin="0,12,0,24"
+                    <ToggleSwitch x:Uid="/BooruSettingPage/ToggleSwitchAutoWallpaper" x:Name="AutoToggleSwitch" Header="後台定期自動刷新壁紙" Margin="0,12,0,24"
                                   IsOn="{Binding WallpaperUpdateTaskEnabled, Mode=TwoWay, Source={StaticResource YandeSettings}}"/>
 
                     <TextBlock x:Uid="/BooruSettingPage/TextBlockUpdateInterval" Text="換圖間隔"/>
