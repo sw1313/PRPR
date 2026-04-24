@@ -178,6 +178,25 @@ namespace PRPR.BooruViewer.Models
                 case 3: parts.Add($"date:>={DateTime.UtcNow.AddDays(-30):yyyy-MM-dd}"); break;
                 case 4: parts.Add($"date:>={DateTime.UtcNow.AddDays(-365):yyyy-MM-dd}"); break;
             }
+
+            // 评级服务器端过滤：减少客户端废弃率
+            var s = IsFilterSafe;
+            var q = IsFilterQuestionable;
+            var e = IsFilterExplicit;
+            var activeCount = (s ? 1 : 0) + (q ? 1 : 0) + (e ? 1 : 0);
+            if (activeCount == 1)
+            {
+                if (s) parts.Add("rating:safe");
+                else if (q) parts.Add("rating:questionable");
+                else if (e) parts.Add("rating:explicit");
+            }
+            else if (activeCount == 2)
+            {
+                if (!s) parts.Add("-rating:safe");
+                else if (!q) parts.Add("-rating:questionable");
+                else if (!e) parts.Add("-rating:explicit");
+            }
+
             return string.Join(" ", parts);
         }
 

@@ -188,12 +188,18 @@ namespace PRPR.BooruViewer.ViewModels
                 {
                     case nameof(filter.IsFilterSafe):
                         SaveSetting(nameof(filter.IsFilterSafe), filter.IsFilterSafe);
+                        if (_lastSearchKeyword != null)
+                            await SearchAsync(_lastSearchKeyword);
                         break;
                     case nameof(filter.IsFilterQuestionable):
                         SaveSetting(nameof(filter.IsFilterQuestionable), filter.IsFilterQuestionable);
+                        if (_lastSearchKeyword != null)
+                            await SearchAsync(_lastSearchKeyword);
                         break;
                     case nameof(filter.IsFilterExplicit):
                         SaveSetting(nameof(filter.IsFilterExplicit), filter.IsFilterExplicit);
+                        if (_lastSearchKeyword != null)
+                            await SearchAsync(_lastSearchKeyword);
                         break;
                     case nameof(filter.SortOrder):
                     case nameof(filter.TimeRange):
