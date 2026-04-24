@@ -1,4 +1,4 @@
-﻿using PRPR.BooruViewer.Models;
+using PRPR.BooruViewer.Models;
 using PRPR.BooruViewer.Models.Global;
 using PRPR.BooruViewer.Services;
 using System;
@@ -32,12 +32,8 @@ namespace PRPR.BooruViewer.ViewModels
             }
             var postsToday = posts.Where(o => o.created_at >= dayBefore);
 
-
-            // Hide all blacklisted post using the search page setting
-            // To prevent sexually suggestive
-            var tagBlacklist = YandeSettings.Current.SearchPostFilter.TagBlacklist.Split(' ').ToList();
-            postsToday = postsToday.Where(o => o.Tags.Split(' ').ToList().FirstOrDefault(tag => tagBlacklist.FirstOrDefault(t => String.Compare(t, tag, true) == 0) != default(string)) == default(string));
-
+            var filterFunc = YandeSettings.Current.SearchPostFilter.Function;
+            postsToday = postsToday.Where(filterFunc);
 
             UpdateTop3(postsToday);
 

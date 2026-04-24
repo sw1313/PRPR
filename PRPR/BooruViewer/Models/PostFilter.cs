@@ -19,7 +19,7 @@ namespace PRPR.BooruViewer.Models
         #endregion
 
         // 评级过滤相关的字段和属性
-        private bool _isFilterSafe = false;
+        private bool _isFilterSafe = true;
         private bool _isFilterQuestionable = false;
         private bool _isFilterExplicit = false;
 
