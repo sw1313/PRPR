@@ -4,6 +4,7 @@ using PRPR.BooruViewer.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,6 +22,54 @@ namespace PRPR.BooruViewer.ViewModels
         
         public ObservableCollection<FeaturedTag> Characters { get; } = new ObservableCollection<FeaturedTag>();
 
+        // 浏览筛选变化时自动跟随刷新
+        private static readonly HashSet<string> FilterTriggerProperties = new HashSet<string>
+        {
+            nameof(PostFilter.IsFilterSafe),
+            nameof(PostFilter.IsFilterQuestionable),
+            nameof(PostFilter.IsFilterExplicit),
+            nameof(PostFilter.IsFilterHorizontal),
+            nameof(PostFilter.IsFilterVertical),
+            nameof(PostFilter.IsFilterAllowHidden),
+            nameof(PostFilter.IsFilterAllowHeld),
+            nameof(PostFilter.SortOrder),
+            nameof(PostFilter.TimeRange),
+            nameof(PostFilter.TagBlacklist),
+        };
+
+        private int _refreshToken = 0;
+        private bool _hasLoadedOnce = false;
+
+        public FeatureViewModel()
+        {
+            var filter = YandeSettings.Current?.SearchPostFilter;
+            if (filter != null)
+            {
+                filter.PropertyChanged += OnFilterPropertyChanged;
+            }
+        }
+
+        private async void OnFilterPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (!FilterTriggerProperties.Contains(e.PropertyName)) return;
+            // 首次加载前不触发（由 FeatureView.UserControl_Loaded 负责首次加载）
+            if (!_hasLoadedOnce) return;
+
+            // 去抖：聚合 300ms 内的连续变更
+            var token = ++_refreshToken;
+            await Task.Delay(300);
+            if (token != _refreshToken) return;
+
+            try
+            {
+                await Update();
+            }
+            catch
+            {
+                // 忽略网络等异常，保持 UI 原有数据
+            }
+        }
+
         public async Task Update()
         {
             // 使用浏览页筛选（服务器端评级过滤可大幅提高命中率）
@@ -35,6 +84,7 @@ namespace PRPR.BooruViewer.ViewModels
             {
                 UpdateTop3(Enumerable.Empty<Post>());
                 UpdateFeatureTags(Enumerable.Empty<KeyValuePair<string, TagSummary>>());
+                _hasLoadedOnce = true;
                 return;
             }
 
@@ -60,6 +110,8 @@ namespace PRPR.BooruViewer.ViewModels
             var tags = GetAllTags(postsToday);
 
             UpdateFeatureTags(tags);
+
+            _hasLoadedOnce = true;
         }
         
         private void UpdateTop3(IEnumerable<Post> posts)
