@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Background;
@@ -347,40 +348,10 @@ namespace PRPR.BooruViewer.Models.Global
             }
             set
             {
-                if (value == true)
-                {
-                    BackgroundAccessStatus x = BackgroundAccessStatus.Unspecified;
-                    try
-                    {
-                        try
-                        {
-                            x = BackgroundExecutionManager.RequestAccessAsync().AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            // 处理异常
-                        }
-                        if (IsTaskRegistered(BackgroundTaskType.Tile))
-                        {
-                            UnregisterTask(BackgroundTaskType.Tile);
-                        }
-
-                        RegisterTask(BackgroundTaskType.Tile);
-                    }
-                    catch (Exception ex)
-                    {
-                        new MessageDialog($"{ex.Message}; x={x}; stack={ex.StackTrace}", "Cannot register background task").ShowAsync();
-                    }
-                }
-                else
-                {
-                    // Unregister the old bg task
-                    UnregisterTask(BackgroundTaskType.Tile);
-                }
-                NotifyPropertyChanged(nameof(TileUpdateTaskEnabled));
+                _ = SetTaskEnabledAsync(BackgroundTaskType.Tile, value, nameof(TileUpdateTaskEnabled));
             }
         }
-        
+
         public uint TileUpdateTaskTimeSpan
         {
             get
@@ -460,37 +431,7 @@ namespace PRPR.BooruViewer.Models.Global
             }
             set
             {
-                if (value == true)
-                {
-                    BackgroundAccessStatus x = BackgroundAccessStatus.Unspecified;
-                    try
-                    {
-                        try
-                        {
-                            x = BackgroundExecutionManager.RequestAccessAsync().AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            // 处理异常
-                        }
-                        if (IsTaskRegistered(BackgroundTaskType.Wallpaper))
-                        {
-                            UnregisterTask(BackgroundTaskType.Wallpaper);
-                        }
-
-                        RegisterTask(BackgroundTaskType.Wallpaper);
-                    }
-                    catch (Exception ex)
-                    {
-                        new MessageDialog($"{ex.Message}; x={x}; stack={ex.StackTrace}", "Cannot register background task").ShowAsync();
-                    }
-                }
-                else
-                {
-                    // Unregister the old bg task
-                    UnregisterTask(BackgroundTaskType.Wallpaper);
-                }
-                NotifyPropertyChanged(nameof(WallpaperUpdateTaskEnabled));
+                _ = SetTaskEnabledAsync(BackgroundTaskType.Wallpaper, value, nameof(WallpaperUpdateTaskEnabled));
             }
         }
 
@@ -640,7 +581,7 @@ namespace PRPR.BooruViewer.Models.Global
             set
             {
                 // Re-register the task if value changed
-                if (value != WallpaperUpdateTaskTimeSpan && WallpaperUpdateTaskEnabled)
+                if (value != WallpaperUpdateTaskQuality && WallpaperUpdateTaskEnabled)
                 {
                     ReregisterTask(BackgroundTaskType.Wallpaper);
                 }
@@ -661,37 +602,7 @@ namespace PRPR.BooruViewer.Models.Global
             }
             set
             {
-                if (value == true)
-                {
-                    BackgroundAccessStatus x = BackgroundAccessStatus.Unspecified;
-                    try
-                    {
-                        try
-                        {
-                            x = BackgroundExecutionManager.RequestAccessAsync().AsTask().ConfigureAwait(false).GetAwaiter().GetResult();
-                        }
-                        catch (Exception ex)
-                        {
-                            // 处理异常
-                        }
-                        if (IsTaskRegistered(BackgroundTaskType.Lockscreen))
-                        {
-                            UnregisterTask(BackgroundTaskType.Lockscreen);
-                        }
-
-                        RegisterTask(BackgroundTaskType.Lockscreen);
-                    }
-                    catch (Exception ex)
-                    {
-                        new MessageDialog($"{ex.Message}; x={x}; stack={ex.StackTrace}", "Cannot register background task").ShowAsync();
-                    }
-                }
-                else
-                {
-                    // Unregister the old bg task
-                    UnregisterTask(BackgroundTaskType.Lockscreen);
-                }
-                NotifyPropertyChanged(nameof(LockscreenUpdateTaskEnabled));
+                _ = SetTaskEnabledAsync(BackgroundTaskType.Lockscreen, value, nameof(LockscreenUpdateTaskEnabled));
             }
         }
 
@@ -841,7 +752,7 @@ namespace PRPR.BooruViewer.Models.Global
             set
             {
                 // Re-register the task if value changed
-                if (value != LockscreenUpdateTaskTimeSpan && LockscreenUpdateTaskEnabled)
+                if (value != LockscreenUpdateTaskQuality && LockscreenUpdateTaskEnabled)
                 {
                     ReregisterTask(BackgroundTaskType.Lockscreen);
                 }
@@ -863,6 +774,53 @@ namespace PRPR.BooruViewer.Models.Global
                         Package.Current.Id.Version.Revision);
 
                 return appVersion;
+            }
+        }
+
+        private readonly SemaphoreSlim _backgroundTaskUpdateLock = new SemaphoreSlim(1, 1);
+
+        private async Task SetTaskEnabledAsync(BackgroundTaskType type, bool enabled, string propertyName)
+        {
+            await _backgroundTaskUpdateLock.WaitAsync();
+            var stateChanged = false;
+            try
+            {
+                // Two-way bindings can write the current value while the page is loading.
+                if (enabled == IsTaskRegistered(type))
+                {
+                    return;
+                }
+
+                stateChanged = true;
+                if (enabled)
+                {
+                    // Keep the UI thread available while Windows resolves background access.
+                    await BackgroundExecutionManager.RequestAccessAsync();
+                    RegisterTask(type);
+                }
+                else
+                {
+                    UnregisterTask(type);
+                }
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    await new MessageDialog(ex.Message, "Cannot update background task").ShowAsync();
+                }
+                catch (Exception dialogException)
+                {
+                    Debug.WriteLine(dialogException);
+                }
+            }
+            finally
+            {
+                if (stateChanged)
+                {
+                    NotifyPropertyChanged(propertyName);
+                }
+                _backgroundTaskUpdateLock.Release();
             }
         }
 

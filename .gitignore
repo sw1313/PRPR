@@ -1,0 +1,35 @@
+# Local credentials and user data
+*.pfx
+*.p12
+*.key
+*.pem
+*.user
+*.suo
+*.db
+*.sqlite
+*.sqlite3
+AccessKey.txt
+.env
+.env.*
+
+# Build output and IDE state
+.vs/
+**/[Bb]in/
+**/[Oo]bj/
+**/[Dd]ebug/
+**/[Rr]elease/
+**/[Xx]64/
+**/[Xx]86/
+**/[Aa][Rr][Mm]/
+**/AppPackages/
+**/BundleArtifacts/
+packages/
+*.pdb
+*.appxsym
+*.log
+
+# Packaged binaries belong in release assets
+*.appx
+*.msix
+*.appxbundle
+*.msixbundle
