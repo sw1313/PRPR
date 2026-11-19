@@ -540,7 +540,12 @@ namespace PRPR.BooruViewer.Models.Global
         {
             get
             {
-                return $"ms-appdata:///local/{AnimePersonalization.WALLPAPER_FOLDER_NAME}/{WallpaperUpdateTaskCurrentImageID}.jpg";
+                var legacyUri = $"ms-appdata:///local/{AnimePersonalization.WALLPAPER_FOLDER_NAME}/{WallpaperUpdateTaskCurrentImageID}.jpg";
+                return GetValueOrDefault<string>(GetCallerName(), legacyUri, false);
+            }
+            set
+            {
+                AddOrUpdateValue(GetCallerName(), value, false);
             }
         }
         
@@ -711,7 +716,12 @@ namespace PRPR.BooruViewer.Models.Global
         {
             get
             {
-                return $"ms-appdata:///local/{AnimePersonalization.LOCKSCREEN_FOLDER_NAME}/{LockscreenUpdateTaskCurrentImageID}.jpg";
+                var legacyUri = $"ms-appdata:///local/{AnimePersonalization.LOCKSCREEN_FOLDER_NAME}/{LockscreenUpdateTaskCurrentImageID}.jpg";
+                return GetValueOrDefault<string>(GetCallerName(), legacyUri, false);
+            }
+            set
+            {
+                AddOrUpdateValue(GetCallerName(), value, false);
             }
         }
         

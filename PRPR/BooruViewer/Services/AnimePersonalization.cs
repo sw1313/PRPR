@@ -93,8 +93,114 @@ namespace PRPR.BooruViewer.Services
         
         public static async Task<string> SetBackgroundImageAsync(FilteredCollection<Post, Posts> posts, uint postShuffle, CropMethod method, Size screenSize, bool isLockscreen, int qualityLevel)
         {
-            var folderName = isLockscreen ? LOCKSCREEN_FOLDER_NAME : WALLPAPER_FOLDER_NAME;
+            var updateLock = isLockscreen ? PersonalizationHelper.LockscreenUpdateLock : PersonalizationHelper.WallpaperUpdateLock;
+            await updateLock.WaitAsync();
+            try
+            {
+                return await SetBackgroundImageCoreAsync(posts, postShuffle, method, screenSize, isLockscreen, qualityLevel);
+            }
+            finally
+            {
+                updateLock.Release();
+            }
+        }
 
+        private static async Task<string> SetBackgroundImageCoreAsync(FilteredCollection<Post, Posts> posts, uint postShuffle, CropMethod method, Size screenSize, bool isLockscreen, int qualityLevel)
+        {
+            if (!UserProfilePersonalizationSettings.IsSupported())
+            {
+                throw new InvalidOperationException("System personalization is not supported on this device.");
+            }
+
+            var folderName = isLockscreen ? LOCKSCREEN_FOLDER_NAME : WALLPAPER_FOLDER_NAME;
+            var yandeSettings = YandeSettings.Current;
+            var previousImageUri = isLockscreen
+                ? yandeSettings.LockscreenUpdateTaskCurrentImageFileUri
+                : yandeSettings.WallpaperUpdateTaskCurrentImageFileUri;
+            var previousFileName = Uri.UnescapeDataString(previousImageUri.Substring(previousImageUri.LastIndexOf('/') + 1));
+            var previousOriginalName = Path.GetFileNameWithoutExtension(previousFileName) + "-original.jpg";
+            var post = await SelectBackgroundPostAsync(posts, postShuffle);
+            var previewBuffer = await DownloadBufferAsync(post.PreviewUrl);
+            var imageCandidate = GetBestImageCandidate(post, qualityLevel);
+            if (String.IsNullOrEmpty(imageCandidate.Url))
+            {
+                throw new InvalidOperationException("Cannot find a usable image URL for the selected post.");
+            }
+
+            var imageFolder = await ApplicationData.Current.LocalFolder.CreateFolderAsync(folderName, CreationCollisionOption.OpenIfExists);
+            var previousFiles = await imageFolder.GetFilesAsync();
+            var largeBuffer = await DownloadBufferAsync(imageCandidate.Url);
+            StorageFile imageFile = null;
+            StorageFile originalFile = null;
+            var imageApplied = false;
+            try
+            {
+                // A retry of the same post must keep the currently displayed file intact.
+                var fileStem = $"{post.Id}-{Guid.NewGuid():N}";
+                imageFile = await imageFolder.CreateFileAsync(fileStem + ".jpg", CreationCollisionOption.FailIfExists);
+                await FileIO.WriteBufferAsync(imageFile, largeBuffer);
+                originalFile = await imageFolder.CreateFileAsync(fileStem + "-original.jpg", CreationCollisionOption.FailIfExists);
+                await FileIO.WriteBufferAsync(originalFile, largeBuffer);
+                await CropImageFile(imageFile, new Size(imageCandidate.Width, imageCandidate.Height), method, screenSize, previewBuffer);
+                using (var stream = await imageFile.OpenAsync(FileAccessMode.Read))
+                {
+                    await BitmapDecoder.CreateAsync(stream);
+                }
+
+                var personalizationSettings = UserProfilePersonalizationSettings.Current;
+                imageApplied = isLockscreen
+                    ? await personalizationSettings.TrySetLockScreenImageAsync(imageFile)
+                    : await personalizationSettings.TrySetWallpaperImageAsync(imageFile);
+                if (!imageApplied)
+                {
+                    throw new InvalidOperationException(isLockscreen
+                        ? "System rejected the lockscreen image update."
+                        : "System rejected the wallpaper image update.");
+                }
+
+                var id = post.Id.ToString();
+                var imageUri = $"ms-appdata:///local/{folderName}/{imageFile.Name}";
+                // Persist the applied file before recording history, which can fail independently.
+                if (isLockscreen)
+                {
+                    yandeSettings.LockscreenUpdateTaskCurrentImageFileUri = imageUri;
+                    yandeSettings.LockscreenUpdateTaskCurrentImageID = id;
+                }
+                else
+                {
+                    yandeSettings.WallpaperUpdateTaskCurrentImageFileUri = imageUri;
+                    yandeSettings.WallpaperUpdateTaskCurrentImageID = id;
+                }
+
+                using (var db = new AppDbContext())
+                {
+                    if (isLockscreen)
+                    {
+                        db.LockScreenRecords.Add(LockScreenRecord.Create(post));
+                    }
+                    else
+                    {
+                        db.WallpaperRecords.Add(WallpaperRecord.Create(post));
+                    }
+                    db.SaveChanges();
+                }
+
+                // Keep the previous successful image as a fallback and retire older files.
+                await PersonalizationHelper.DeleteImageFilesAsync(previousFiles.Where(file =>
+                    file.Name != previousFileName && file.Name != previousOriginalName));
+                return id;
+            }
+            finally
+            {
+                if (!imageApplied)
+                {
+                    await PersonalizationHelper.DeleteImageFilesAsync(new[] { imageFile, originalFile }.Where(file => file != null));
+                }
+            }
+        }
+
+        private static async Task<Post> SelectBackgroundPostAsync(FilteredCollection<Post, Posts> posts, uint postShuffle)
+        {
             Random rnd = new Random();
             int pointer = rnd.Next((int)postShuffle);
 
@@ -120,89 +226,8 @@ namespace PRPR.BooruViewer.Services
             }
 
             // Select a post
-            var post = posts[pointer];
+            return posts[pointer];
 
-            var previewBuffer = await DownloadBufferAsync(post.PreviewUrl);
-            var imageCandidate = GetBestImageCandidate(post, qualityLevel);
-
-            if (String.IsNullOrEmpty(imageCandidate.Url))
-            {
-                throw new InvalidOperationException("Cannot find a usable image URL for the selected post.");
-            }
-
-            // Try to delete all files of previous images
-            var imageFolder = await ApplicationData.Current.LocalFolder.CreateFolderAsync(folderName, CreationCollisionOption.OpenIfExists);
-            var imageFiles = await imageFolder.GetFilesAsync();
-            foreach (var oldImageFile in imageFiles)
-            {
-                try
-                {
-                    await oldImageFile.DeleteAsync(StorageDeleteOption.PermanentDelete);
-                }
-                catch (Exception ex)
-                {
-
-                }
-            }
-
-
-            // Downlaod the image and create a copy ready to crop
-            var largeBuffer = await DownloadBufferAsync(imageCandidate.Url);
-            var imageFile = await imageFolder.CreateFileAsync($"{post.Id}.jpg", CreationCollisionOption.ReplaceExisting);
-            await FileIO.WriteBufferAsync(imageFile, largeBuffer);
-            var jpegFile = await imageFolder.CreateFileAsync($"{post.Id}-original.jpg", CreationCollisionOption.ReplaceExisting);
-            await FileIO.WriteBufferAsync(jpegFile, largeBuffer);
-
-            
-            // Crop the image
-            var imageSize = new Size(imageCandidate.Width, imageCandidate.Height);
-            await CropImageFile(imageFile, imageSize, method, screenSize, previewBuffer);
-
-
-            var id = "";
-            if (!UserProfilePersonalizationSettings.IsSupported())
-            {
-                throw new InvalidOperationException("System personalization is not supported on this device.");
-            }
-
-            if (isLockscreen)
-            {
-                var b = await UserProfilePersonalizationSettings.Current.TrySetLockScreenImageAsync(imageFile);
-                if (b)
-                {
-                    using (var db = new AppDbContext())
-                    {
-                        db.LockScreenRecords.Add(LockScreenRecord.Create(post));
-                        db.SaveChanges();
-                    }
-                    id = post.Id.ToString();
-                }
-                else
-                {
-                    throw new InvalidOperationException("System rejected the lockscreen image update.");
-                }
-            }
-            else
-            {
-                var b = await UserProfilePersonalizationSettings.Current.TrySetWallpaperImageAsync(imageFile);
-                if (b)
-                {
-                    using (var db = new AppDbContext())
-                    {
-                        db.WallpaperRecords.Add(WallpaperRecord.Create(post));
-                        db.SaveChanges();
-                    }
-                    id = post.Id.ToString();
-                }
-                else
-                {
-                    throw new InvalidOperationException("System rejected the wallpaper image update.");
-                }
-            }
-
-
-            // Return the latest ID if there is an update
-            return id;
         }
 
         private static ImageCandidate GetBestImageCandidate(Post post, int qualityLevel)

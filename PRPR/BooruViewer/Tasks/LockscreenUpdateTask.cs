@@ -19,8 +19,14 @@ namespace PRPR.BooruViewer.Tasks
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
             var d = taskInstance.GetDeferral();
-            await RunAsync();
-            d.Complete();
+            try
+            {
+                await RunAsync();
+            }
+            finally
+            {
+                d.Complete();
+            }
         }
         
         public static async Task RunAsync(bool throwOnError = false)
@@ -31,9 +37,6 @@ namespace PRPR.BooruViewer.Tasks
             var shuffle = yandeSettings.LockscreenUpdateTaskShuffleCount;
             var filter = yandeSettings.LockscreenPostFilter;
 
-            var old = yandeSettings.LockscreenUpdateTaskCurrentImageFileUri;
-            yandeSettings.LockscreenUpdateTaskCurrentImageID = "";
-
             try
             {
                 var metaTags = filter.BuildMetaTags();
@@ -42,22 +45,15 @@ namespace PRPR.BooruViewer.Tasks
 
                 var filteredPosts = new FilteredCollection<Post, Posts>(posts, filter);
                 
-                // Unset the previous lockscreen, so that the image file is no longer in use
-                yandeSettings.LockscreenUpdateTaskCurrentImageID = "";
-
                 // Set Lockscreen
-                var result = await AnimePersonalization.SetBackgroundImageAsync(filteredPosts, shuffle, yandeSettings.LockscreenUpdateTaskCropMethod, appSettings.ScreenSize, true, yandeSettings.LockscreenUpdateTaskQuality);
-
-                // Notice the app that the wallpapaer was changed
-                yandeSettings.LockscreenUpdateTaskCurrentImageID = result;
+                await AnimePersonalization.SetBackgroundImageAsync(filteredPosts, shuffle, yandeSettings.LockscreenUpdateTaskCropMethod, appSettings.ScreenSize, true, yandeSettings.LockscreenUpdateTaskQuality);
 
                 // Motice user about the change
                 // TODO: need opt out settings
-                //BigImageToast(result, yandeSettings.LockscreenUpdateTaskCurrentImageFileUri, yandeSettings.AvatarUri);
+                //BigImageToast(yandeSettings.LockscreenUpdateTaskCurrentImageID, yandeSettings.LockscreenUpdateTaskCurrentImageFileUri, yandeSettings.AvatarUri);
             }
             catch (Exception ex)
             {
-                yandeSettings.LockscreenUpdateTaskCurrentImageID = old;
                 ToastService.ToastDebug("Cannot Update Lockscreen", ex.StackTrace);
                 ToastService.ToastDebug("Cannot Update Lockscreen", ex.Message);
                 if (throwOnError)

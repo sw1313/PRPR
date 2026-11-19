@@ -21,8 +21,14 @@ namespace PRPR.BooruViewer.Tasks
         public async void Run(IBackgroundTaskInstance taskInstance)
         {
             var d = taskInstance.GetDeferral();
-            await RunAsync();
-            d.Complete();
+            try
+            {
+                await RunAsync();
+            }
+            finally
+            {
+                d.Complete();
+            }
         }
 
         public static async Task RunAsync(bool throwOnError = false)
@@ -33,9 +39,6 @@ namespace PRPR.BooruViewer.Tasks
             var shuffle = yandeSettings.WallpaperUpdateTaskShuffleCount;
             var filter = yandeSettings.WallpaperPostFilter;
 
-            var old = yandeSettings.WallpaperUpdateTaskCurrentImageFileUri;
-            yandeSettings.WallpaperUpdateTaskCurrentImageID = "";
-
             try
             {
                 var metaTags = filter.BuildMetaTags();
@@ -44,22 +47,15 @@ namespace PRPR.BooruViewer.Tasks
 
                 var filteredPosts = new FilteredCollection<Post, Posts>(posts, filter);
 
-                // Unset the previous wallpaper, so that the image file is no longer in use
-                yandeSettings.WallpaperUpdateTaskCurrentImageID = "";
-
                 // Set wallpaper
-                var result = await AnimePersonalization.SetBackgroundImageAsync(filteredPosts, shuffle, yandeSettings.WallpaperUpdateTaskCropMethod, appSettings.ScreenSize, false, yandeSettings.WallpaperUpdateTaskQuality);
-
-                // Notice the app that the wallpapaer was changed
-                yandeSettings.WallpaperUpdateTaskCurrentImageID = result;
+                await AnimePersonalization.SetBackgroundImageAsync(filteredPosts, shuffle, yandeSettings.WallpaperUpdateTaskCropMethod, appSettings.ScreenSize, false, yandeSettings.WallpaperUpdateTaskQuality);
 
                 // Motice user about the change
                 // TODO: need opt out settings
-                //BigImageToast(result, yandeSettings.WallpaperUpdateTaskCurrentImageFileUri, yandeSettings.AvatarUri);
+                //BigImageToast(yandeSettings.WallpaperUpdateTaskCurrentImageID, yandeSettings.WallpaperUpdateTaskCurrentImageFileUri, yandeSettings.AvatarUri);
             }
             catch (Exception ex)
             {
-                yandeSettings.WallpaperUpdateTaskCurrentImageID = old;
                 ToastService.ToastDebug("Cannot Update Wallpaper", ex.StackTrace);
                 ToastService.ToastDebug("Cannot Update Wallpaper", ex.Message);
                 if (throwOnError)

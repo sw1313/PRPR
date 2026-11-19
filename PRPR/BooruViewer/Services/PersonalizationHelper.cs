@@ -1,10 +1,12 @@
 ﻿using PRPR.BooruViewer.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Graphics.Imaging;
@@ -18,86 +20,143 @@ namespace PRPR.BooruViewer.Services
 {
     public class PersonalizationHelper
     {
+        internal static readonly SemaphoreSlim WallpaperUpdateLock = new SemaphoreSlim(1, 1);
+        internal static readonly SemaphoreSlim LockscreenUpdateLock = new SemaphoreSlim(1, 1);
+
+        internal static async Task DeleteImageFilesAsync(IEnumerable<StorageFile> files)
+        {
+            foreach (var file in files)
+            {
+                try
+                {
+                    await file.DeleteAsync(StorageDeleteOption.PermanentDelete);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                }
+            }
+        }
+
         public static async Task SetLockScreen(Post post, Rect cropRect)
         {
-            Uri urlToDownload;
-            if (false) // TODO: detect whether the device is a phone
+            await LockscreenUpdateLock.WaitAsync();
+            StorageFile imageSaved = null;
+            var imageApplied = false;
+            try
             {
-                // Only select file smaller than 2MB as the system required
-                if (post.FileSize <= 2000000)
+                var imageFolder = await ApplicationData.Current.LocalFolder.CreateFolderAsync("Lockscreens", CreationCollisionOption.OpenIfExists);
+                var previousFiles = await imageFolder.GetFilesAsync();
+                Uri urlToDownload;
+                if (false) // TODO: detect whether the device is a phone
                 {
-                    urlToDownload = new Uri(post.FileUrl);
-                }
-                else if (post.JpegFileSize <= 2000000)
-                {
-                    urlToDownload = new Uri(post.JpegUrl);
-                }
-                else if (post.SampleFileSize <= 2000000)
-                {
-                    urlToDownload = new Uri(post.SampleUrl);
+                    // Only select file smaller than 2MB as the system required
+                    if (post.FileSize <= 2000000)
+                    {
+                        urlToDownload = new Uri(post.FileUrl);
+                    }
+                    else if (post.JpegFileSize <= 2000000)
+                    {
+                        urlToDownload = new Uri(post.JpegUrl);
+                    }
+                    else if (post.SampleFileSize <= 2000000)
+                    {
+                        urlToDownload = new Uri(post.SampleUrl);
+                    }
+                    else
+                    {
+                        urlToDownload = new Uri(post.PreviewUrl);
+                    }
                 }
                 else
                 {
-                    urlToDownload = new Uri(post.PreviewUrl);
+                    urlToDownload = new Uri(post.JpegUrl);
                 }
+
+                // Download the file into local storage
+                imageSaved = await DownloadImageFromUri(urlToDownload, BackgroundTaskType.LockScreen);
+
+
+                // Crop if needed
+                //if (cropRect)
+                //{
+                    await CropBitmap.GetCroppedBitmapAsync(imageSaved, cropRect, 1);
+                //}
+
+                // Set the lockScreen
+                imageApplied = await ChangeLockScreenBackground(imageSaved);
+                if (!imageApplied)
+                {
+                    throw new InvalidOperationException("System rejected the background image update.");
+                }
+                await DeleteImageFilesAsync(previousFiles.OrderByDescending(file => file.DateCreated).Skip(1));
             }
-            else
+            finally
             {
-                urlToDownload = new Uri(post.JpegUrl);
+                if (!imageApplied && imageSaved != null)
+                {
+                    await DeleteImageFilesAsync(new[] { imageSaved });
+                }
+                LockscreenUpdateLock.Release();
             }
-
-            // Download the file into local storage
-            // And delete other existing old file
-            var imageSaved = await DownloadImageFromUri(urlToDownload, BackgroundTaskType.LockScreen);
-
-
-            // Crop if needed
-            //if (cropRect)
-            //{
-                await CropBitmap.GetCroppedBitmapAsync(imageSaved, cropRect, 1);
-            //}
-
-            // Set the lockScreen
-            await ChangeLockScreenBackground(imageSaved);
         }
-
 
         public static async Task SetWallPaper(Post post)
         {
-            Uri urlToDownload;
-            if (false) // TODO: detect whether the device is a phone
+            await WallpaperUpdateLock.WaitAsync();
+            StorageFile imageSaved = null;
+            var imageApplied = false;
+            try
             {
-                // Only select file smaller than 2MB as the system required
-                if (post.FileSize <= 2000000)
+                var imageFolder = await ApplicationData.Current.LocalFolder.CreateFolderAsync("Wallpapers", CreationCollisionOption.OpenIfExists);
+                var previousFiles = await imageFolder.GetFilesAsync();
+                Uri urlToDownload;
+                if (false) // TODO: detect whether the device is a phone
                 {
-                    urlToDownload = new Uri(post.FileUrl);
-                }
-                else if (post.JpegFileSize <= 2000000)
-                {
-                    urlToDownload = new Uri(post.JpegUrl);
-                }
-                else if (post.SampleFileSize <= 2000000)
-                {
-                    urlToDownload = new Uri(post.SampleUrl);
+                    // Only select file smaller than 2MB as the system required
+                    if (post.FileSize <= 2000000)
+                    {
+                        urlToDownload = new Uri(post.FileUrl);
+                    }
+                    else if (post.JpegFileSize <= 2000000)
+                    {
+                        urlToDownload = new Uri(post.JpegUrl);
+                    }
+                    else if (post.SampleFileSize <= 2000000)
+                    {
+                        urlToDownload = new Uri(post.SampleUrl);
+                    }
+                    else
+                    {
+                        urlToDownload = new Uri(post.PreviewUrl);
+                    }
                 }
                 else
                 {
-                    urlToDownload = new Uri(post.PreviewUrl);
+                    urlToDownload = new Uri(post.FileUrl);
                 }
-            }
-            else
-            {
-                urlToDownload = new Uri(post.FileUrl);
-            }
 
-            // Download the file into local storage
-            // And delete other existing old file
-            var imageSaved = await DownloadImageFromUri(urlToDownload, BackgroundTaskType.WallPaper);
-            
-            // Set the lockScreen
-            await ChangeWallPaper(imageSaved);
+                // Download the file into local storage
+                imageSaved = await DownloadImageFromUri(urlToDownload, BackgroundTaskType.WallPaper);
+
+                // Set the lockScreen
+                imageApplied = await ChangeWallPaper(imageSaved);
+                if (!imageApplied)
+                {
+                    throw new InvalidOperationException("System rejected the background image update.");
+                }
+                await DeleteImageFilesAsync(previousFiles.OrderByDescending(file => file.DateCreated).Skip(1));
+            }
+            finally
+            {
+                if (!imageApplied && imageSaved != null)
+                {
+                    await DeleteImageFilesAsync(new[] { imageSaved });
+                }
+                WallpaperUpdateLock.Release();
+            }
         }
-        
+
         public static async Task<StorageFile> DownloadImageFromUri(Uri uri, BackgroundTaskType type)
         {
             // Save the image to storage
@@ -114,21 +173,21 @@ namespace PRPR.BooruViewer.Services
             var imageFolder = await localFolder.CreateFolderAsync(type == BackgroundTaskType.LockScreen ? "Lockscreens" : "Wallpapers", CreationCollisionOption.OpenIfExists);
 
 
-            var imageFiles = await imageFolder.GetFilesAsync();
-            foreach (var oldImageFile in imageFiles)
+            var imageFile = await imageFolder.CreateFileAsync(Guid.NewGuid().ToString("N") + ".jpg", CreationCollisionOption.FailIfExists);
+            try
             {
-                try
+                await FileIO.WriteBufferAsync(imageFile, resultBuffer);
+                using (var stream = await imageFile.OpenAsync(FileAccessMode.Read))
                 {
-                    await oldImageFile.DeleteAsync(StorageDeleteOption.PermanentDelete);
+                    await BitmapDecoder.CreateAsync(stream);
                 }
-                catch (Exception ex)
-                {
-
-                }
+                return imageFile;
             }
-            var imageFile = await imageFolder.CreateFileAsync(DateTime.UtcNow.Ticks.ToString() + ".jpg", CreationCollisionOption.ReplaceExisting);
-            await FileIO.WriteBufferAsync(imageFile, resultBuffer);
-            return imageFile;
+            catch
+            {
+                await DeleteImageFilesAsync(new[] { imageFile });
+                throw;
+            }
         }
 
 
@@ -161,7 +220,7 @@ namespace PRPR.BooruViewer.Services
 
 
 
-        
+
 
 
 
